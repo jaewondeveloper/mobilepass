@@ -146,8 +146,10 @@ fun AppSurface(
             base = {
                 Box(Modifier.fillMaxSize().background(c.pageBg)) {
                     // 라이트 홈/학생증 탭은 템플릿의 그라데이션 배경 (다크는 평면)
-                    if (!c.dark && state.tab != Tab.MENU) {
+                    // 다크모드는 같은 그라데이션을 어둡게 덮어 어두운 그라데이션으로
+                    if (state.tab != Tab.MENU) {
                         Image(painterResource(if (state.tab == Tab.HOME) R.drawable.bg_home else R.drawable.bg_devices), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                        if (c.dark) Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color(0xC2010102)))
                     }
                     Box(Modifier.fillMaxSize().padding(top = top)) {
                         when (state.tab) {

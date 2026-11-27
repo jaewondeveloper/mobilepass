@@ -16,7 +16,7 @@
      WebView 의 env(safe-area-inset-*) 가 겹쳐 더해지지 않도록 0 으로 고정
   5-1. 색 모드 고정: 앱이 알려준 값으로 matchMedia 를 대체 → 복귀 시 라이트/다크 깜빡임 방지, 스플래시 배경도 다크 대응
   5-2. 성능: 숨은 lottie 정지, 스캔 중 패치 중단, 프레임 폴링 제거
-  6. 다크모드: 탭마다 인라인으로 박힌 라이트용 배경 이미지/무드 색을 다크에서는 템플릿 기본 다크색(#010102)으로 통일
+  6. 다크모드: 탭마다 인라인으로 박힌 라이트용 배경 이미지/무드 색을 다크에서는 템플릿 기본 다크색(#010102) 위에 라이트 그라데이션을 어둡게 덮어 어두운 그라데이션으로 (홈/학생증 탭)
 """
 import re
 import sys
@@ -351,7 +351,7 @@ HEAD_PATCH = (
     "window.matchMedia=function(q){return /prefers-color-scheme\\s*:\\s*dark/.test(q)?mql(q):real(q)};"
     "window.__sidSetDark=function(d){d=!!d;if(d===dark)return;dark=d;R.setAttribute('data-sid-dark',d?'1':'0');"
     "ls.slice().forEach(function(f){try{f({matches:d,media:'(prefers-color-scheme: dark)'})}catch(e){}})};}}catch(e){}</script>\n"
-    "<style id=\"sid-dark\">html[data-color-scheme=\"dark\"] px-window-glass.gradient-bg{background-image:none!important;background-color:#010102!important}html[data-color-scheme=\"dark\"] wx-tab-control{background-color:#252527!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}html[data-color-scheme=\"dark\"] wx-tab-control-item{color:#EBEBEB!important}html[data-color-scheme=\"dark\"] wx-tab-control[selected=home] wx-tab-control-item#home,html[data-color-scheme=\"dark\"] wx-tab-control[selected=devices] wx-tab-control-item#devices,html[data-color-scheme=\"dark\"] wx-tab-control[selected=menu] wx-tab-control-item#menu{color:#FFFFFF!important}</style>\n"
+    "<style id=\"sid-dark\">html[data-color-scheme=\"dark\"] px-window-glass.gradient-bg{background-color:#010102!important;box-shadow:inset 0 0 0 100vmax rgba(1,1,2,.76)!important}html[data-color-scheme=\"dark\"] wx-tab-control{background-color:#252527!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}html[data-color-scheme=\"dark\"] wx-tab-control-item{color:#EBEBEB!important}html[data-color-scheme=\"dark\"] wx-tab-control[selected=home] wx-tab-control-item#home,html[data-color-scheme=\"dark\"] wx-tab-control[selected=devices] wx-tab-control-item#devices,html[data-color-scheme=\"dark\"] wx-tab-control[selected=menu] wx-tab-control-item#menu{color:#FFFFFF!important}</style>\n"
 )
 sub('<style id="sid-early">', HEAD_PATCH + '<style id="sid-early">')
 sub('html:not(.sid-go){background:#f1f1f3!important}', 'html:not(.sid-go){background:#f1f1f3!important}html[data-sid-dark="1"]:not(.sid-go){background:#010102!important}')
