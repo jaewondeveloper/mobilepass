@@ -57,35 +57,36 @@ fun TimetablePage(state: AppState, onBack: () -> Unit, onChangeClass: () -> Unit
         result = null
         state.school.loadTimetable(force = tick > 0) { result = it }
     }
-    val cfg = state.school.config
     PageFrame("시간표", onBack) {
-        ListCard {
-            ListRow(
-                "${cfg.grade}학년 ${cfg.cls}반",
-                desc = when {
-                    result?.value != null -> "출처: ${result!!.value!!.source}${if (result!!.stale) " · 저장된 시간표" else ""} · 눌러서 바꾸기"
-                    else -> "눌러서 바꾸기"
-                },
-                onClick = onChangeClass,
-            )
-        }
-        Spacer(Modifier.height(20.dp))
-        val r = result
-        when {
-            r == null -> ListCard { ListRow("불러오는 중이에요", "잠시만 기다려 주세요", descAccent = false) }
-            r.value == null -> ListCard { ListRow("불러오지 못했어요", (r.error ?: "인터넷 연결을 확인해 주세요") + "\n눌러서 다시 시도해요", descAccent = false, onClick = { tick++ }) }
-            else -> {
-                val days = r.value.days.filter { it.lessons.isNotEmpty() }
-                if (days.isEmpty()) ListCard { ListRow("이번 주 시간표가 아직 없어요", "학교에서 시간표를 올리면 보여요", descAccent = false) }
-                days.forEach { d ->
-                    SectionLabel(dayLabel(d.ymd))
-                    ListCard {
-                        d.lessons.forEachIndexed { i, l ->
-                            ListRow("${l.period}교시  ${l.subject}", l.teacher.ifEmpty { null }, divider = i < d.lessons.size - 1, descAccent = false)
-                        }
+        TimetableBody(state.school.config.grade, state.school.config.cls, result, onChangeClass) { tick++ }
+    }
+}
+
+/** 시간표 페이지 내용 (머리글 아래): 학년·반 줄, 요일별 카드 */
+@Composable
+fun TimetableBody(grade: Int, cls: Int, r: SchoolRepository.Loaded<Timetable>?, onChangeClass: () -> Unit, onRetry: () -> Unit) {
+    ListCard {
+        ListRow(
+            "${grade}학년 ${cls}반",
+            desc = if (r?.value != null) "출처: ${r.value.source}${if (r.stale) " · 저장된 시간표" else ""} · 눌러서 바꾸기" else "눌러서 바꾸기",
+            onClick = onChangeClass,
+        )
+    }
+    Spacer(Modifier.height(20.dp))
+    when {
+        r == null -> ListCard { ListRow("불러오는 중이에요", "잠시만 기다려 주세요", descAccent = false) }
+        r.value == null -> ListCard { ListRow("불러오지 못했어요", (r.error ?: "인터넷 연결을 확인해 주세요") + "\n눌러서 다시 시도해요", descAccent = false, onClick = onRetry) }
+        else -> {
+            val days = r.value.days.filter { it.lessons.isNotEmpty() }
+            if (days.isEmpty()) ListCard { ListRow("이번 주 시간표가 아직 없어요", "학교에서 시간표를 올리면 보여요", descAccent = false) }
+            days.forEach { d ->
+                SectionLabel(dayLabel(d.ymd))
+                ListCard {
+                    d.lessons.forEachIndexed { i, l ->
+                        ListRow("${l.period}교시  ${l.subject}", l.teacher.ifEmpty { null }, divider = i < d.lessons.size - 1, descAccent = false)
                     }
-                    Spacer(Modifier.height(20.dp))
                 }
+                Spacer(Modifier.height(20.dp))
             }
         }
     }

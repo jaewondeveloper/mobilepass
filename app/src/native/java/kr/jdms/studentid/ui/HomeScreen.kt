@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -110,12 +111,33 @@ fun SchoolMenu(open: Boolean, top: androidx.compose.ui.unit.Dp, onDismiss: () ->
     }
 }
 
+/** 홈의 '내일/오늘 시간표' 줄에 쓸 (제목, 과목들). 학년·반이 없거나 아직 못 불러왔으면 null */
+@Composable
+fun rememberTimetableStrip(state: AppState): Pair<String, List<String>>? {
+    state.stripPreview?.let { return it }
+    var now by remember { mutableStateOf(java.time.LocalDateTime.now()) }
+    LaunchedEffect(Unit) { if (IdTabConfig.liveClock) while (true) { kotlinx.coroutines.delay(30_000); now = java.time.LocalDateTime.now() } }
+    val target = kr.jdms.studentid.school.TimetableView.target(now)
+    var subjects by remember { mutableStateOf<List<String>?>(null) }
+    LaunchedEffect(state.classTick, target) {
+        if (!state.school.config.isSet) { subjects = null; return@LaunchedEffect }
+        state.school.loadTimetable(target) { r ->
+            val ymd = kr.jdms.studentid.school.Neis.ymd(target)
+            subjects = r.value?.days?.firstOrNull { it.ymd == ymd }?.lessons?.map { it.subject }
+        }
+    }
+    val s = subjects
+    if (s.isNullOrEmpty() || !state.school.config.isSet) return null
+    return kr.jdms.studentid.school.TimetableView.label(target, now.toLocalDate()) to s
+}
+
 @Composable
 fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon: () -> Unit, onMeal: () -> Unit = onSoon, onTimetable: () -> Unit = onSoon, sc: androidx.compose.foundation.ScrollState = rememberScrollState()) {
     val c = LocalColors.current
+    val strip = rememberTimetableStrip(state)
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().scrollEdgeFade(sc).verticalScroll(sc)) {
-            Box(Modifier.fillMaxWidth().height(660.dp)) {
+            Box(Modifier.fillMaxWidth().height(if (strip != null) 760.dp else 660.dp)) {
 
                 // '지금' 카드: (10,74) 373x147, 둥근 30
                 PutFull(74f, 147f, modifier = Modifier.glass(c)) {
@@ -157,8 +179,24 @@ fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon:
                     }
                 }
 
+                // 시간표 줄: 학교생활 카드 바로 아래. 과목 이름을 둥근 카드 하나씩에 넣어 가로로 쭉 (옆으로 밀어서 더 보기)
+                if (strip != null) {
+                    PT(strip.first, 20f, 490f, 13, c.text, 600)
+                    Row(
+                        Modifier.align(Alignment.TopStart).offset(y = 509.dp).fillMaxWidth()
+                            .horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        strip.second.forEach { name ->
+                            Box(Modifier.height(52.dp).clip(SmoothRoundedShape(22.dp)).background(c.card).padding(horizontal = 18.dp), contentAlignment = Alignment.Center) {
+                                T(name, 15, c.text, 600, maxLines = 1, softWrap = false, single = true)
+                            }
+                        }
+                    }
+                }
+
                 // 학생증 한 줄: (10,481) 373x77, 둥근 28. 누르면 0.96 으로 줄고 글자 묶음은 0.979 더 줄어든다.
-                PutFull(481f, 77f) {
+                PutFull(if (strip != null) 571f else 481f, 77f) {
                     PressBox(Modifier.fillMaxSize(), shape = CardShape, scale = 0.96f, bg = c.card, onClick = onOpenCard) {
                         val ts by animateFloatAsState(if (LocalPressed.current) 0.979f else 1f, tween(Motion.RECOIL_MS, easing = Motion.Recoil), label = "cardText")
                         Box(Modifier.fillMaxSize().graphicsLayer { scaleX = ts; scaleY = ts; transformOrigin = TransformOrigin(0.5f, 0.5f) }) {

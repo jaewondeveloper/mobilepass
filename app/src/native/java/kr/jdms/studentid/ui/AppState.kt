@@ -29,6 +29,8 @@ class AppState(context: Context, private val store: CardStore) {
     val school = kr.jdms.studentid.school.SchoolRepository(context)
     /** 학년/반이 바뀔 때마다 올라가서, 열려 있는 시간표가 다시 불러오게 한다 */
     var classTick by mutableStateOf(0)
+    /** 화면 캡처 테스트용: 홈 시간표 줄을 이 값으로 고정해 보여 준다 */
+    var stripPreview by mutableStateOf<Pair<String, List<String>>?>(null)
     var name by mutableStateOf<String?>(null)
     var code by mutableStateOf<String?>(null)
     var photo by mutableStateOf<ImageBitmap?>(null)

@@ -142,5 +142,26 @@ class ScreenshotTest {
         savePng("licenses-scrolled")
     }
 
+    @Test fun home_strip_light() = shot("home-strip-light", false) { it.tab = Tab.HOME; it.stripPreview = "내일 시간표" to listOf("국어", "수학", "영어", "과학", "사회", "체육", "음악") }
+    @Test fun home_strip_dark() = shot("home-strip-dark", true) { it.tab = Tab.HOME; it.stripPreview = "오늘 시간표" to listOf("국어", "수학", "영어", "과학") }
+
+    @Test fun timetable_light() {
+        val sample = kr.jdms.studentid.school.Timetable("컴시간", 2, 3, listOf(
+            kr.jdms.studentid.school.DayTimetable("20260302", listOf(kr.jdms.studentid.school.Lesson(1, "국어", "김교사"), kr.jdms.studentid.school.Lesson(2, "수학", "이교사"))),
+            kr.jdms.studentid.school.DayTimetable("20260303", listOf(kr.jdms.studentid.school.Lesson(1, "영어", "박교사"))),
+        ))
+        rule.setContent {
+            androidx.compose.runtime.CompositionLocalProvider(LocalBackdropEnabled provides false) {
+                AppTheme(false) {
+                    androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize().background(LightColors.pageBg)) {
+                        PageFrame("시간표", {}) { TimetableBody(2, 3, kr.jdms.studentid.school.SchoolRepository.Loaded(sample, false, null), {}, {}) }
+                    }
+                }
+            }
+        }
+        rule.waitForIdle()
+        savePng("timetable-light")
+    }
+
     @Test fun settings_dark() = shot("settings-dark", true) { it.open(Page.SETTINGS) }
 }

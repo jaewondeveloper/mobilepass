@@ -79,6 +79,71 @@ sub("        if (it.toggle) { PREF[it.toggle] = !PREF[it.toggle]; d.switch = sw(
     "        if (it.toggle) { PREF[it.toggle] = !PREF[it.toggle]; d.switch = sw(it); c.updateItems(data); try { if (window.SidNative && SidNative.switchHaptic) SidNative.switchHaptic(!!PREF[it.toggle]); } catch (e) {} }")
 
 # ── 시간표 / 급식 (화면은 템플릿 부품, 데이터는 앱이 나이스·컴시간에서 가져온다) ──
+STRIP_JS = r"""
+  /* ───── 홈: 내일/오늘 시간표 줄 (오후 4시 5분 이후 → 다음 등교일, 그 전 → 오늘) ───── */
+  var TTS = { key: '', subjects: null, label: '', at: 0, busy: false };
+  function ttTarget(now) {
+    var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (now.getHours() * 60 + now.getMinutes() >= 16 * 60 + 5) d.setDate(d.getDate() + 1);
+    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+    return d;
+  }
+  function ttLabel(target, now) {
+    var t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var diff = Math.round((target - t0) / 86400000);
+    return diff === 0 ? '오늘 시간표' : diff === 1 ? '내일 시간표' : DOWK[target.getDay()] + '요일 시간표';
+  }
+  function ymdOf(d) { var m = d.getMonth() + 1, dd = d.getDate(); return '' + d.getFullYear() + (m < 10 ? '0' : '') + m + (dd < 10 ? '0' : '') + dd; }
+  var TT_CSS = '#sid-tt-strip{display:block;} .sid-tt-label{font-size:13px;font-weight:600;line-height:16px;padding:10px 10px 8px 10px;color:#010102;} .sid-tt-row{display:flex;gap:6px;overflow-x:auto;padding:0 0 2px;scrollbar-width:none;} .sid-tt-row::-webkit-scrollbar{display:none;} .sid-tt-chip{flex:none;box-sizing:border-box;height:52px;padding:0 18px;border-radius:22px;display:flex;align-items:center;background:#FCFCFF;color:#010102;font-size:15px;font-weight:600;white-space:nowrap;} #sid-tt-strip[data-dark] .sid-tt-label{color:#FAFAFF;} #sid-tt-strip[data-dark] .sid-tt-chip{background:#17171A;color:#FAFAFF;}';
+  function ttRemove(strip) {
+    if (strip) strip.remove();
+    var m = document.querySelectorAll('[data-sid-moved]');
+    for (var i = 0; i < m.length; i++) { m[i].style.gridRow = ''; m[i].removeAttribute('data-sid-moved'); }
+  }
+  function patchTTStrip() {
+    var dash = document.querySelector('vx-dashboard-card');
+    if (!dash || !window.SidNative || !window.SidNative.getSchoolConfig) return;
+    var anchor = dash;                                   // 학교생활(대시보드) 카드 바로 아래
+    if (!anchor.parentElement) return;
+    var cfg = schoolCfg();
+    var strip = document.getElementById('sid-tt-strip');
+    if (!(cfg.grade > 0 && cfg.cls > 0)) { ttRemove(strip); TTS.key = ''; return; }
+    var now = new Date(), target = ttTarget(now);
+    var key = cfg.grade + '-' + cfg.cls + '-' + ymdOf(target);
+    var stale = now.getTime() - TTS.at > 30 * 60 * 1000;
+    if ((key !== TTS.key || stale) && !TTS.busy) {
+      TTS.busy = true; TTS.key = key; TTS.at = now.getTime();
+      var id = ++SCH.seq;
+      SCH.cbs[id] = function (r) {
+        TTS.busy = false;
+        var day = r && r.ok && r.data && r.data.days ? r.data.days.filter(function (d) { return d.ymd === ymdOf(target); })[0] : null;
+        TTS.subjects = day ? day.lessons.map(function (l) { return l.subject; }) : [];
+        TTS.label = ttLabel(target, new Date());
+        TTS.shown = '';
+        patchTTStrip();
+      };
+      try { window.SidNative.loadTimetableOn(id, ymdOf(target)); } catch (e) { TTS.busy = false; }
+    }
+    if (!TTS.subjects || !TTS.subjects.length) { ttRemove(strip); return; }
+    var sig = TTS.label + '|' + TTS.subjects.join(',');
+    if (strip && strip.getAttribute('data-sig') === sig) return;
+    if (!strip) { strip = document.createElement('div'); strip.id = 'sid-tt-strip'; anchor.insertAdjacentElement('afterend', strip); }
+    strip.setAttribute('data-sig', sig);
+    if (document.documentElement.getAttribute('data-color-scheme') === 'dark') strip.setAttribute('data-dark', ''); else strip.removeAttribute('data-dark');
+    strip.style.cssText = 'display:block !important;grid-column:1 / -1;grid-row:3;min-width:0;margin:0;';       // 카드 묶음 안쪽 스타일이 숨기지 못하게 직접 지정
+    var after = strip.nextElementSibling;                       // 학생증 카드는 한 줄 아래로
+    if (after && !after.hasAttribute('data-sid-moved')) { after.style.gridRow = '4'; after.setAttribute('data-sid-moved', '1'); }
+    var root = strip.getRootNode();                              // 카드 묶음이 그림자 영역 안이면 거기에도 스타일을 넣는다
+    if (root && root.host && !root.getElementById('sid-tt-style')) { var st = document.createElement('style'); st.id = 'sid-tt-style'; st.textContent = TT_CSS; root.appendChild(st); }
+    strip.innerHTML = '<div class="sid-tt-label"></div><div class="sid-tt-row"></div>';
+    strip.firstChild.textContent = TTS.label;
+    var row = strip.lastChild;
+    TTS.subjects.forEach(function (n) {
+      var c = document.createElement('div'); c.className = 'sid-tt-chip';
+      var t = document.createElement('span'); t.textContent = n; c.appendChild(t); row.appendChild(c);
+    });
+  }
+"""
 SCHOOL_JS = r"""
   /* ───── 시간표 / 급식 ───── */
   var SCH = { seq: 0, cbs: {} };
@@ -103,7 +168,10 @@ SCHOOL_JS = r"""
       var box = mkCard(null, labels.map(function (t, i) {
         return { id: 'sid-pk-' + i, title: t, fn: function () { hideThen(d, function () { done(i + 1); }); } };
       }));
-      d = openDialog('sid-pick', { title: title, contents: box, cancelable: true, disposable: true, actions: { cancel: { label: '취소', type: 'cancel' } } });
+      var scroller = document.createElement('div');           // 목록이 길어도 화면을 다 채우지 않고 안에서 스크롤
+      scroller.style.cssText = 'max-height:42vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px;';
+      scroller.appendChild(box);
+      d = openDialog('sid-pick', { title: title, contents: scroller, cancelable: true, disposable: true, actions: { cancel: { label: '취소', type: 'cancel' } } });
     });
   }
   function pickClass(done) {
@@ -164,7 +232,8 @@ SCHOOL_JS = r"""
     load(false);
   }
 """
-sub("  function openTips() { openNative('SidTipsPage'); }", "  function openTips() { openNative('SidTipsPage'); }" + SCHOOL_JS)
+sub("  function openTips() { openNative('SidTipsPage'); }", "  function openTips() { openNative('SidTipsPage'); }" + SCHOOL_JS + STRIP_JS)
+sub("    patchInfo();\n    renderId();", "    patchInfo();\n    try { patchTTStrip(); } catch (e) { console.error(e); }\n    renderId();")
 sub("        else if (it.act === 'unreg') doUnreg();\n      };", "        else if (it.act === 'unreg') doUnreg();\n        else if (typeof it.fn === 'function') it.fn();\n      };")
 
 # 오픈소스 라이선스 / 개인정보처리방침: 문구는 tools/legal.py (네이티브 앱과 공용)
@@ -211,7 +280,7 @@ sub("      if (node.matches('.ux-app-page-information__license')) { act = 'lic';
 sub("    else if (act === 'tips') openTips();",
     "    else if (act === 'tips') openTips();\n    else if (act === 'priv') openNative('SidPrivacyPage');")
 sub(".sid-pg .sid-danger-title { color: #e5392d !important; }",
-    ".sid-pg .sid-danger-title { color: #e5392d !important; } .sid-pg wx-list-item span { white-space: pre-line !important; } .sid-sch .sid-card-wrap { margin-bottom: 18px; }")
+    ".sid-pg .sid-danger-title { color: #e5392d !important; } .sid-pg wx-list-item span { white-space: pre-line !important; } .sid-sch .sid-card-wrap { margin-bottom: 18px; } #sid-tt-strip { display: block !important; grid-column: 1 / -1; margin: 0; min-width: 0; } .sid-tt-label { font-size: 13px; font-weight: 600; line-height: 16px; padding: 0 10px 8px 10px; margin-top: 2px; color: #010102; } .sid-tt-row { display: flex; gap: 6px; overflow-x: auto; padding: 0 0 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; } .sid-tt-row::-webkit-scrollbar { display: none; } .sid-tt-chip { flex: none; box-sizing: border-box; height: 52px; padding: 0 18px; border-radius: 22px; display: flex; align-items: center; background: #FCFCFF; color: #010102; font-size: 15px; font-weight: 600; white-space: nowrap; } html[data-color-scheme=\"dark\"] .sid-tt-label { color: #FAFAFF; } html[data-color-scheme=\"dark\"] .sid-tt-chip { background: #17171A; color: #FAFAFF; }")
 sub(".ux-app-page-information__license { display: flex; justify-content: center; }",
     ".ux-app-page-information__license { display: flex; justify-content: center; } .ux-app-page-information__bottom-wrapper:has(.sid-privacy-link) { flex-direction: column !important; align-items: center !important; } .sid-privacy-link { margin-bottom: 12px; }")
 sub("      if (node.matches('.sid-privacy-link')) { act = 'priv'; break; }", "      if (node.matches('.sid-privacy-link')) { act = 'priv'; break; }")

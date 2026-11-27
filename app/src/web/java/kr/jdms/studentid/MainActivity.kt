@@ -465,6 +465,13 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread { school.loadTimetable(force = force) { r -> schoolReply(id, r) { it.toJson() } } }
         }
 
+        /** 홈의 '내일/오늘 시간표' 줄: 해당 날짜(yyyyMMdd)가 속한 주의 시간표 */
+        @JavascriptInterface
+        fun loadTimetableOn(id: Int, ymd: String) {
+            val day = runCatching { java.time.LocalDate.parse(ymd, java.time.format.DateTimeFormatter.BASIC_ISO_DATE) }.getOrNull() ?: return
+            runOnUiThread { school.loadTimetable(today = day) { r -> schoolReply(id, r) { it.toJson() } } }
+        }
+
         @JavascriptInterface
         fun loadMeals(id: Int, force: Boolean) {
             runOnUiThread { school.loadMeals(force = force) { r -> schoolReply(id, r) { it.toJson() } } }

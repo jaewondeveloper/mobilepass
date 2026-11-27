@@ -118,4 +118,20 @@ class SchoolTest {
         val m = MealPlan(listOf(DayMeals("20260302", listOf(Meal("중식", listOf("밥", "국"), "600 Kcal", listOf(1, 5))))))
         assertEquals(m, MealPlan.fromJson(m.toJson()))
     }
+
+    @Test fun 홈_시간표_날짜는_4시5분을_기준으로_바뀐다() {
+        fun at(y: Int, m: Int, d: Int, h: Int, mi: Int) = java.time.LocalDateTime.of(y, m, d, h, mi)
+        // 2026-03-04 는 수요일
+        assertEquals(LocalDate.of(2026, 3, 4), TimetableView.target(at(2026, 3, 4, 0, 0)))      // 자정 이후 → 오늘
+        assertEquals(LocalDate.of(2026, 3, 4), TimetableView.target(at(2026, 3, 4, 16, 4)))     // 4시 4분 → 오늘
+        assertEquals(LocalDate.of(2026, 3, 5), TimetableView.target(at(2026, 3, 4, 16, 5)))     // 4시 5분 → 내일
+        assertEquals(LocalDate.of(2026, 3, 5), TimetableView.target(at(2026, 3, 4, 23, 59)))    // 자정 전 → 내일
+        assertEquals(LocalDate.of(2026, 3, 9), TimetableView.target(at(2026, 3, 6, 17, 0)))     // 금요일 저녁 → 월요일
+        assertEquals(LocalDate.of(2026, 3, 9), TimetableView.target(at(2026, 3, 7, 9, 0)))      // 토요일 → 월요일
+        assertEquals(LocalDate.of(2026, 3, 9), TimetableView.target(at(2026, 3, 8, 20, 0)))     // 일요일 → 월요일
+        val today = LocalDate.of(2026, 3, 4)
+        assertEquals("오늘 시간표", TimetableView.label(today, today))
+        assertEquals("내일 시간표", TimetableView.label(today.plusDays(1), today))
+        assertEquals("월요일 시간표", TimetableView.label(LocalDate.of(2026, 3, 9), LocalDate.of(2026, 3, 6)))
+    }
 }
