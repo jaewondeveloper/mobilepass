@@ -44,33 +44,32 @@ class SchoolTest {
         assertTrue(f.urls[0].contains("Type=json") && f.urls[0].contains("SCHUL_NM="))
     }
 
-    @Test fun 급식은_한_번에_받아_날짜별로_묶는다() {
-        val rows = listOf(
-            """{"MLSV_YMD":"20260302","MMEAL_SC_CODE":"2","MMEAL_SC_NM":"중식","DDISH_NM":"쌀밥<br/>국 (1.2)","CAL_INFO":"600.1 Kcal"}""",
-            """{"MLSV_YMD":"20260303","MMEAL_SC_CODE":"2","MMEAL_SC_NM":"중식","DDISH_NM":"볶음밥","CAL_INFO":"700 Kcal"}""",
-        )
-        val f = Fake { neis("mealServiceDietInfo", 2, rows) }
-        val plan = Neis.meals(f, school, Neis.schoolWeek(LocalDate.of(2026, 3, 4)))
-        assertEquals(2, plan.days.size)
-        assertEquals(listOf("쌀밥", "국"), plan.days[0].meals[0].dishes)
-        assertEquals(listOf(1, 2), plan.days[0].meals[0].allergies)
-        assertEquals(1, f.urls.size)
-    }
-
-    @Test fun 급식_건수_제한이_있으면_하루씩_다시_요청한다() {
-        // 범위 요청은 5건만 주고 total 은 5 보다 크다고 하며 2쪽은 오류 → 하루씩 받아야 한다
+    @Test fun 급식은_하루씩_받아_날짜별로_묶는다() {
         val f = Fake { url ->
             when {
-                url.contains("MLSV_FROM_YMD") && url.contains("pIndex=1") -> neis("mealServiceDietInfo", 9, (1..5).map { """{"MLSV_YMD":"20260302","MMEAL_SC_CODE":"2","MMEAL_SC_NM":"중식","DDISH_NM":"a"}""" })
-                url.contains("MLSV_FROM_YMD") -> """{"RESULT":{"CODE":"ERROR-337","MESSAGE":"일 트래픽 제한"}}"""
-                url.contains("MLSV_YMD=20260302") -> neis("mealServiceDietInfo", 1, listOf("""{"MLSV_YMD":"20260302","MMEAL_SC_CODE":"2","MMEAL_SC_NM":"중식","DDISH_NM":"월요일밥"}"""))
-                url.contains("MLSV_YMD=20260303") -> neis("mealServiceDietInfo", 1, listOf("""{"MLSV_YMD":"20260303","MMEAL_SC_CODE":"2","MMEAL_SC_NM":"중식","DDISH_NM":"화요일밥"}"""))
+                url.contains("MLSV_YMD=20260302") -> neis("mealServiceDietInfo", 1, listOf("""{"MLSV_YMD":"20260302","MMEAL_SC_CODE":"2","MMEAL_SC_NM":"중식","DDISH_NM":"쌀밥<br/>국 (1.2)","CAL_INFO":"600.1 Kcal"}"""))
+                url.contains("MLSV_YMD=20260303") -> neis("mealServiceDietInfo", 1, listOf("""{"MLSV_YMD":"20260303","MMEAL_SC_CODE":"2","MMEAL_SC_NM":"중식","DDISH_NM":"볶음밥","CAL_INFO":"700 Kcal"}"""))
                 else -> none
             }
         }
         val plan = Neis.meals(f, school, Neis.schoolWeek(LocalDate.of(2026, 3, 4)))
         assertEquals(listOf("20260302", "20260303"), plan.days.map { it.ymd })
-        assertEquals("월요일밥", plan.days[0].meals[0].dishes[0])
+        assertEquals(listOf("쌀밥", "국"), plan.days[0].meals[0].dishes)
+        assertEquals(listOf(1, 2), plan.days[0].meals[0].allergies)
+        assertEquals(5, f.urls.size)
+        assertTrue(f.urls.all { it.contains("pSize=5") })      // 키 없이는 5건까지만
+    }
+
+    @Test fun 급식_요청이_모두_실패하면_이유를_알려준다() {
+        val f = Fake { throw java.io.IOException("timeout") }
+        val e = runCatching { Neis.meals(f, school, Neis.schoolWeek(LocalDate.of(2026, 3, 4))) }.exceptionOrNull()
+        assertTrue(e != null && e.message!!.contains("timeout"))
+    }
+
+    @Test fun 같은_이름_학교가_여러_곳이면_일원동_학교를_고른다() {
+        val bucheon = SchoolRef("J10", "1", "중동중학교", "경기도 부천시 길주로", "중학교")
+        val seoul = SchoolRef("B10", "2", "중동중학교", "서울특별시 강남구 일원로8길 37", "중학교")
+        assertEquals("2", Neis.pickSchool(listOf(bucheon, seoul))!!.schoolCode)
     }
 
     @Test fun 나이스_시간표는_교시순으로_정리한다() {

@@ -50,9 +50,10 @@ class SchoolRepository(context: Context, private val fetcher: Fetcher = UrlFetch
 
     /** 학교 정보(나이스 코드)를 아직 모르면 이름으로 찾아 저장한다 */
     private fun school(): SchoolRef {
-        prefs.school()?.let { return it }
-        val list = Neis.findSchools(fetcher, SCHOOL_NAME)
-        val s = list.firstOrNull() ?: throw IllegalStateException("나이스에서 $SCHOOL_NAME 를 찾지 못했어요")
+        // 예전에 다른 지역의 같은 이름 학교가 저장돼 있었다면 버리고 다시 찾는다
+        prefs.school()?.let { if (it.address.isEmpty() || it.address.contains("일원") || it.address.contains("강남")) return it }
+        val (list, note) = Neis.findSchoolsDetailed(fetcher, SCHOOL_NAME)
+        val s = Neis.pickSchool(list) ?: throw IllegalStateException("나이스에서 $SCHOOL_NAME 를 찾지 못했어요" + if (note.isNotEmpty()) " · $note" else "")
         prefs.saveSchool(s)
         return s
     }

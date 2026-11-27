@@ -24,6 +24,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,13 +52,34 @@ private val ALLERGY_NAMES = mapOf(
     11 to "복숭아", 12 to "토마토", 13 to "아황산류", 14 to "호두", 15 to "닭고기", 16 to "쇠고기", 17 to "오징어", 18 to "조개류", 19 to "잣",
 )
 
+/** 페이지가 열리는 애니메이션(450ms)이 끝난 뒤에 내용을 채운다. 움직이는 중에 큰 화면을 한꺼번에 그리면 프레임이 떨어진다. */
+private suspend fun <T> awaitAfterOpen(openedAt: Long, load: ((T) -> Unit) -> Unit): T {
+    val d = CompletableDeferred<T>()
+    load { d.complete(it) }
+    val r = d.await()
+    val wait = openedAt + Motion.PAGE_IN_MS + 40 - System.currentTimeMillis()
+    if (wait > 0) delay(wait)
+    return r
+}
+
+/** 카드를 한 번에 다 그리지 않고 몇 프레임에 하나씩 나눠 그린다 (처음 열 때 한 프레임이 길어지는 것을 막음) */
+@Composable
+private fun rememberReveal(total: Int, enabled: Boolean, key: Any?): Int {
+    var n by remember(key) { mutableIntStateOf(if (enabled) 0 else total) }
+    LaunchedEffect(key, total, enabled) {
+        while (enabled && n < total) { withFrameNanos { }; withFrameNanos { }; n++ }
+    }
+    return if (enabled) n.coerceAtMost(total) else total
+}
+
 @Composable
 fun TimetablePage(state: AppState, onBack: () -> Unit, onChangeClass: () -> Unit) {
     var result by remember { mutableStateOf<SchoolRepository.Loaded<Timetable>?>(null) }
     var tick by remember { mutableIntStateOf(0) }
+    val openedAt = remember { System.currentTimeMillis() }
     LaunchedEffect(tick, state.classTick) {
         result = null
-        state.school.loadTimetable(force = tick > 0) { result = it }
+        result = awaitAfterOpen<SchoolRepository.Loaded<Timetable>>(openedAt) { cb -> state.school.loadTimetable(force = tick > 0, cb = cb) }
     }
     PageFrame("시간표", onBack) {
         TimetableBody(state.school.config.grade, state.school.config.cls, result, onChangeClass) { tick++ }
@@ -64,7 +88,7 @@ fun TimetablePage(state: AppState, onBack: () -> Unit, onChangeClass: () -> Unit
 
 /** 시간표 페이지 내용 (머리글 아래): 학년·반 줄, 요일별 카드 */
 @Composable
-fun TimetableBody(grade: Int, cls: Int, r: SchoolRepository.Loaded<Timetable>?, onChangeClass: () -> Unit, onRetry: () -> Unit) {
+fun TimetableBody(grade: Int, cls: Int, r: SchoolRepository.Loaded<Timetable>?, onChangeClass: () -> Unit, reveal: Boolean = true, onRetry: () -> Unit) {
     ListCard {
         ListRow(
             "${grade}학년 ${cls}반",
@@ -79,7 +103,8 @@ fun TimetableBody(grade: Int, cls: Int, r: SchoolRepository.Loaded<Timetable>?, 
         else -> {
             val days = r.value.days.filter { it.lessons.isNotEmpty() }
             if (days.isEmpty()) ListCard { ListRow("이번 주 시간표가 아직 없어요", "학교에서 시간표를 올리면 보여요", descAccent = false) }
-            days.forEach { d ->
+            val shown = rememberReveal(days.size, reveal, r)
+            days.take(shown).forEach { d ->
                 SectionLabel(dayLabel(d.ymd))
                 ListCard {
                     d.lessons.forEachIndexed { i, l ->
@@ -96,9 +121,10 @@ fun TimetableBody(grade: Int, cls: Int, r: SchoolRepository.Loaded<Timetable>?, 
 fun MealPage(state: AppState, onBack: () -> Unit) {
     var result by remember { mutableStateOf<SchoolRepository.Loaded<MealPlan>?>(null) }
     var tick by remember { mutableIntStateOf(0) }
+    val openedAt = remember { System.currentTimeMillis() }
     LaunchedEffect(tick) {
         result = null
-        state.school.loadMeals(force = tick > 0) { result = it }
+        result = awaitAfterOpen<SchoolRepository.Loaded<MealPlan>>(openedAt) { cb -> state.school.loadMeals(force = tick > 0, cb = cb) }
     }
     PageFrame("급식", onBack) {
         ListCard {
@@ -111,7 +137,8 @@ fun MealPage(state: AppState, onBack: () -> Unit) {
             r.value == null -> ListCard { ListRow("불러오지 못했어요", (r.error ?: "인터넷 연결을 확인해 주세요") + "\n눌러서 다시 시도해요", descAccent = false, onClick = { tick++ }) }
             else -> {
                 if (r.value.days.isEmpty()) ListCard { ListRow("이번 주 급식 정보가 없어요", "학교에서 식단을 올리면 보여요", descAccent = false) }
-                r.value.days.forEach { d ->
+                val shown = rememberReveal(r.value.days.size, true, r)
+                r.value.days.take(shown).forEach { d ->
                     SectionLabel(dayLabel(d.ymd))
                     ListCard {
                         d.meals.forEachIndexed { i, m ->

@@ -12,6 +12,8 @@ import java.time.format.DateTimeFormatter
  */
 object Neis {
     private const val BASE = "https://open.neis.go.kr/hub"
+    /** 인증키 없이는 한 번에 5건까지만 받을 수 있다 (더 크게 요청하면 거절될 수 있음) */
+    private const val PAGE_SIZE = 5
     private val YMD = DateTimeFormatter.BASIC_ISO_DATE
 
     fun ymd(d: LocalDate): String = d.format(YMD)
@@ -53,20 +55,20 @@ object Neis {
         return Page(total, rows, code)
     }
 
-    class Fetched(val rows: List<JSONObject>, val complete: Boolean)
+    class Fetched(val rows: List<JSONObject>, val complete: Boolean, val note: String = "")
 
     /** 여러 쪽에 걸친 결과를 모두 모은다. 중간에 막히면 지금까지 받은 것과 complete=false 를 돌려준다. */
     fun fetchAll(f: Fetcher, endpoint: String, params: Map<String, String>): Fetched {
         val all = ArrayList<JSONObject>()
         var index = 1
-        while (index <= 40) {
+        while (index <= 60) {
             val page = try {
-                parse(endpoint, f.get(url(endpoint, params + mapOf("pIndex" to "$index", "pSize" to "100"))))
+                parse(endpoint, f.get(url(endpoint, params + mapOf("pIndex" to "$index", "pSize" to "$PAGE_SIZE"))))
             } catch (e: Exception) {
-                return Fetched(all, false)
+                return Fetched(all, false, "연결 실패(${e.message ?: e.javaClass.simpleName})")
             }
             if (page.code == "INFO-200") return Fetched(all, true)                // 해당하는 데이터가 없음 = 정상
-            if (page.code != "INFO-000") return Fetched(all, false)               // 제한/오류
+            if (page.code != "INFO-000") return Fetched(all, false, "나이스 응답 ${page.code}")               // 제한/오류
             all.addAll(page.rows)
             if (page.rows.isEmpty() || all.size >= page.total) return Fetched(all, true)
             index++
@@ -76,8 +78,26 @@ object Neis {
 
     // ───────── 학교 찾기 ─────────
 
-    fun findSchools(f: Fetcher, name: String): List<SchoolRef> {
-        val r = fetchAll(f, "schoolInfo", mapOf("SCHUL_NM" to name))
+    /** 이름이 같은 학교가 여러 곳(서울 강남 / 경기 부천 등)일 수 있어, 학생증에 적힌 주소(강남구 일원동)와 맞는 곳을 고른다 */
+    fun pickSchool(list: List<SchoolRef>): SchoolRef? =
+        list.firstOrNull { it.address.contains("일원") } ?: list.firstOrNull { it.address.contains("강남") } ?: list.singleOrNull()
+
+    fun findSchools(f: Fetcher, name: String): List<SchoolRef> = findSchoolsDetailed(f, name).first
+
+    fun findSchoolsDetailed(f: Fetcher, name: String): Pair<List<SchoolRef>, String> {
+        // 서울(B10) 먼저 — 결과가 적어 한 쪽에 다 들어온다. 못 찾으면 전국에서.
+        var r = fetchAll(f, "schoolInfo", mapOf("SCHUL_NM" to name, "ATPT_OFCDC_SC_CODE" to "B10"))
+        var list = schoolRefs(r, name)
+        var note = r.note
+        if (list.isEmpty()) {
+            r = fetchAll(f, "schoolInfo", mapOf("SCHUL_NM" to name))
+            list = schoolRefs(r, name)
+            if (r.note.isNotEmpty()) note = r.note
+        }
+        return list to note
+    }
+
+    private fun schoolRefs(r: Fetched, name: String): List<SchoolRef> {
         return r.rows.map {
             SchoolRef(it.optString("ATPT_OFCDC_SC_CODE"), it.optString("SD_SCHUL_CODE"), it.optString("SCHUL_NM"), it.optString("ORG_RDNMA"), it.optString("SCHUL_KND_SC_NM"))
         }.filter { it.name == name && it.schoolCode.isNotEmpty() }
@@ -108,11 +128,16 @@ object Neis {
 
     fun meals(f: Fetcher, school: SchoolRef, days: List<LocalDate>): MealPlan {
         val base = mapOf("ATPT_OFCDC_SC_CODE" to school.officeCode, "SD_SCHUL_CODE" to school.schoolCode)
-        val r = fetchAll(f, "mealServiceDietInfo", base + mapOf("MLSV_FROM_YMD" to ymd(days.first()), "MLSV_TO_YMD" to ymd(days.last())))
-        if (r.complete) return mealPlan(r.rows)
-        // 한꺼번에 받지 못하면 하루씩 (하루치는 최대 3건)
+        // 키 없이는 건수가 적게 제한되므로 하루씩 받는다 (하루치는 최대 3건)
         val rows = ArrayList<JSONObject>()
-        days.forEach { d -> rows.addAll(fetchAll(f, "mealServiceDietInfo", base + mapOf("MLSV_YMD" to ymd(d))).rows) }
+        var failNote = ""
+        var anyOk = false
+        days.forEach { d ->
+            val one = fetchAll(f, "mealServiceDietInfo", base + mapOf("MLSV_YMD" to ymd(d)))
+            rows.addAll(one.rows)
+            if (one.complete) anyOk = true else if (failNote.isEmpty()) failNote = one.note
+        }
+        if (!anyOk && rows.isEmpty()) throw java.io.IOException("급식을 불러오지 못했어요 · $failNote")
         return mealPlan(rows)
     }
 
@@ -137,17 +162,22 @@ object Neis {
     fun timetable(f: Fetcher, school: SchoolRef, grade: Int, cls: Int, days: List<LocalDate>): Timetable {
         val ep = timetableEndpoint(school.kind)
         val base = mapOf("ATPT_OFCDC_SC_CODE" to school.officeCode, "SD_SCHUL_CODE" to school.schoolCode, "GRADE" to "$grade", "CLASS_NM" to "$cls")
-        val r = fetchAll(f, ep, base + mapOf("TI_FROM_YMD" to ymd(days.first()), "TI_TO_YMD" to ymd(days.last())))
-        if (r.complete) return timetablePlan(r.rows, grade, cls)
-        // 건수 제한이 있으면 날짜·교시별로 한 건씩
+        // 하루씩 받고(쪽 나눠서), 쪽을 못 넘기면 그날만 교시별로 한 건씩
         val rows = ArrayList<JSONObject>()
+        var failNote = ""
+        var anyOk = false
         days.forEach { d ->
+            val day = fetchAll(f, ep, base + mapOf("ALL_TI_YMD" to ymd(d)))
+            if (day.complete) { rows.addAll(day.rows); anyOk = true; return@forEach }
+            if (failNote.isEmpty()) failNote = day.note
             for (p in 1..8) {
                 val one = fetchAll(f, ep, base + mapOf("ALL_TI_YMD" to ymd(d), "PERIO" to "$p"))
                 rows.addAll(one.rows)
+                if (one.complete) anyOk = true
                 if (one.rows.isEmpty() && p > 1) break           // 그날 더 이상 수업이 없음
             }
         }
+        if (!anyOk && rows.isEmpty()) throw java.io.IOException("시간표를 불러오지 못했어요 · $failNote")
         return timetablePlan(rows, grade, cls)
     }
 }

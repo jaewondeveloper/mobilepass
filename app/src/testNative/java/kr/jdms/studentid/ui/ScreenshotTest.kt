@@ -154,7 +154,7 @@ class ScreenshotTest {
             androidx.compose.runtime.CompositionLocalProvider(LocalBackdropEnabled provides false) {
                 AppTheme(false) {
                     androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize().background(LightColors.pageBg)) {
-                        PageFrame("시간표", {}) { TimetableBody(2, 3, kr.jdms.studentid.school.SchoolRepository.Loaded(sample, false, null), {}, {}) }
+                        PageFrame("시간표", {}) { TimetableBody(2, 3, kr.jdms.studentid.school.SchoolRepository.Loaded(sample, false, null), {}, false, {}) }
                     }
                 }
             }
