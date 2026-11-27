@@ -14,6 +14,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -44,7 +46,8 @@ fun MenuTab(onReRegister: () -> Unit, onTips: () -> Unit, onInfo: () -> Unit, on
         }
         }
         // 머리글(제목 26/700 x=24, 설정 버튼은 오른쪽에서 12 떨어진 48x48 원)은 스크롤 밖에 떠 있고, 스크롤되면 버튼 뒤에 유리 배경이 생긴다
-        PT("중동중학교", 24f, 20.5f, 26, c.text, 700)
+        val titleAlpha by androidx.compose.animation.core.animateFloatAsState(if (sc.value > 0) 0f else 1f, androidx.compose.animation.core.tween(145, easing = androidx.compose.animation.core.LinearEasing), label = "titleFade")
+        PT("중동중학교", 24f, 20.5f, 26, c.text, 700, modifier = Modifier.graphicsLayer { alpha = titleAlpha })
         ActionIcon(R.drawable.ic_settings, Modifier.align(Alignment.TopEnd).offset((-12).dp, 12.dp), onSettings, glass = sc.value > 0)
     }
 }

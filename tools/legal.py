@@ -46,6 +46,7 @@ LIBS = [
     ("AndroidX CameraX", "Apache License 2.0", "Copyright © The Android Open Source Project", "카메라 미리보기와 프레임 분석"),
     ("Google ML Kit (Barcode Scanning, Text Recognition Korean, Face Detection, Selfie Segmentation)", "ML Kit Terms of Service", "Copyright © Google LLC", "바코드·한글·얼굴 인식, 배경 제거 (모두 기기 안에서 처리)"),
     ("ONNX Runtime for Android", "MIT License", "Copyright © Microsoft Corporation", "얼굴 비교 모델 실행"),
+    ("SFace 얼굴 인식 모델 (OpenCV Zoo, face_recognition_sface)", "Apache License 2.0", "Copyright © OpenCV team, Yaoyao Zhong et al. (SFace)", "학생증 속 얼굴과 본인 얼굴 비교 (기기 안에서 실행)"),
     ("ZXing (Zebra Crossing) core", "Apache License 2.0", "Copyright © ZXing authors", "Code 128 바코드 만들기"),
     ("Kotlin Standard Library, kotlinx.coroutines", "Apache License 2.0", "Copyright © JetBrains s.r.o. and Kotlin Programming Language contributors", "앱 기본 코드와 비동기 처리"),
 ]

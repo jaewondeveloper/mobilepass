@@ -133,7 +133,7 @@ class BlinkDetector(private val closedBelow: Float = 0.30f, private val openAbov
 /** 본인 확인 판정 기준 */
 object MatchPolicy {
     /** SFace(OpenCV 권장 0.363) 보다 약간 낮춤: 학생증 사진은 화질이 낮아 같은 사람이어도 점수가 낮게 나온다. 실제 데이터로 조정 필요. */
-    const val THRESHOLD = 0.33f
+    const val THRESHOLD = 0.363f      // OpenCV SFace 가 권장하는 코사인 유사도 기준
 
     fun isMatch(score: Float) = score >= THRESHOLD
 }

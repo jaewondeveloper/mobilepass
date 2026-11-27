@@ -157,7 +157,9 @@ fun BackHeader(title: String, onBack: () -> Unit, glass: Boolean = false) {
     val c = LocalColors.current
     Box(Modifier.fillMaxWidth().height(68.dp)) {
         ActionIcon(R.drawable.ic_back, Modifier.align(Alignment.TopStart).offset(12.dp, 12.dp), onBack, glass)
-        PT(title, 60f, 23.5f, 20, c.text, 700)
+        // 스크롤되어 버튼에 유리 배경이 생기면 옆의 제목은 빠르게 사라진다 (원본과 같음)
+        val titleAlpha by animateFloatAsState(if (glass) 0f else 1f, tween(145, easing = LinearEasing), label = "titleFade")
+        PT(title, 60f, 23.5f, 20, c.text, 700, modifier = Modifier.graphicsLayer { alpha = titleAlpha })
     }
 }
 

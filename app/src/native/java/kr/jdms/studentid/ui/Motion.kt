@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -280,31 +281,38 @@ private val TopFadeAlpha = floatArrayOf(1f, .992f, .976f, .945f, .91f, .863f, .8
 private val BottomFadeStops = floatArrayOf(0f, 6.65f, 12.84f, 18.62f, 24.03f, 29.13f, 33.95f, 38.55f, 42.98f, 47.28f, 51.5f, 55.69f, 59.9f, 64.18f, 68.57f, 73.13f, 77.89f, 82.91f, 88.24f, 93.92f, 100f)
 private val BottomFadeAlpha = floatArrayOf(1f, .992f, .976f, .945f, .91f, .863f, .81f, .753f, .69f, .627f, .56f, .494f, .43f, .37f, .31f, .26f, .21f, .173f, .145f, .125f, .04f)
 
-/** 스크롤 상자(verticalScroll 보다 바깥에 붙인다)의 위/아래 가장자리를 원본처럼 서서히 흐리게 한다. */
+/**
+ * 스크롤 상자(verticalScroll 보다 바깥에 붙인다)의 위/아래 가장자리를 원본처럼 서서히 흐리게 한다.
+ * 마스크는 디더링을 끈 선형 그라데이션(DST_IN)으로 그려서 가로줄 무늬가 생기지 않게 한다.
+ */
 fun Modifier.scrollEdgeFade(sc: androidx.compose.foundation.ScrollState): Modifier = this
     .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
     .drawWithContent {
         drawContent()
         val topOn = sc.value > 0
         val bottomOn = sc.value < sc.maxValue
+        fun mask(y0: Float, y1: Float, pos: FloatArray, alpha: FloatArray) {
+            val colors = IntArray(alpha.size) { (alpha[it] * 255f + 0.5f).toInt().coerceIn(0, 255) shl 24 }
+            drawIntoCanvas { canvas ->
+                val paint = android.graphics.Paint().apply {
+                    isDither = false
+                    isAntiAlias = false
+                    xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.DST_IN)
+                    shader = android.graphics.LinearGradient(0f, y0, 0f, y1, colors, pos, android.graphics.Shader.TileMode.CLAMP)
+                }
+                canvas.nativeCanvas.drawRect(0f, y0, size.width, y1, paint)
+            }
+        }
         if (topOn) {
             val h = minOf(157.dp.toPx(), size.height)
-            // 위로 갈수록 투명: 투명도 목록은 '아래(안쪽)에서 위(가장자리)' 순서
-            val stops = Array(TopFadeStops.size) { i -> (1f - TopFadeStops[TopFadeStops.size - 1 - i] / 100f) to Color.Black.copy(alpha = TopFadeAlpha[TopFadeStops.size - 1 - i]) }
-            drawRect(
-                androidx.compose.ui.graphics.Brush.verticalGradient(colorStops = stops, startY = 0f, endY = h),
-                topLeft = androidx.compose.ui.geometry.Offset(0f, 0f), size = androidx.compose.ui.geometry.Size(size.width, h),
-                blendMode = androidx.compose.ui.graphics.BlendMode.DstIn,
-            )
+            val n = TopFadeStops.size
+            // 투명도 목록은 '안쪽(아래) → 가장자리(위)' 순서이므로 뒤집어서 위에서 아래로
+            val pos = FloatArray(n) { 1f - TopFadeStops[n - 1 - it] / 100f }
+            val alpha = FloatArray(n) { TopFadeAlpha[n - 1 - it] }
+            mask(0f, h, pos, alpha)
         }
         if (bottomOn) {
             val h = minOf(92.dp.toPx(), size.height)
-            val y0 = size.height - h
-            val stops = Array(BottomFadeStops.size) { i -> (BottomFadeStops[i] / 100f) to Color.Black.copy(alpha = BottomFadeAlpha[i]) }
-            drawRect(
-                androidx.compose.ui.graphics.Brush.verticalGradient(colorStops = stops, startY = y0, endY = size.height),
-                topLeft = androidx.compose.ui.geometry.Offset(0f, y0), size = androidx.compose.ui.geometry.Size(size.width, h),
-                blendMode = androidx.compose.ui.graphics.BlendMode.DstIn,
-            )
+            mask(size.height - h, size.height, FloatArray(BottomFadeStops.size) { BottomFadeStops[it] / 100f }, BottomFadeAlpha)
         }
     }
