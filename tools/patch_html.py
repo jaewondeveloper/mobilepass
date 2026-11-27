@@ -10,6 +10,7 @@
   2. '학생증 스캔' → 템플릿의 정보 페이지(InformationPage)로 스캔 화면을 열고,
      카드 모양 영역에만 네이티브 카메라를 비춘다 (나머지는 템플릿 페이지 배경 그대로)
   3. 인식 결과 확인 → 템플릿의 Dialog(webpack 모듈 29946)를 그대로 사용
+  3-1. 얼굴 단계: 학생증 앞면 얼굴 → 전면카메라 본인 확인(깜빡임) → 프로필 사진(배경 제거/보정) → 학생증 탭 카드에 표시, 탭하면 확대 모달
   4. 웹용 인식 엔진(Tesseract/ZXing) CDN 로딩 생략, 바코드 표시용 JsBarcode만 로컬 로딩
   5. 안전 영역은 템플릿이 vhome.getSystemBarInsets() 로 직접 계산하므로 건드리지 않고,
      WebView 의 env(safe-area-inset-*) 가 겹쳐 더해지지 않도록 0 으로 고정
@@ -38,11 +39,26 @@ sub("var S = { reg: null, engineReady: false,",
 sub("    S.reg = { name: name, code: code };\n    S.rev++;",
     "    S.reg = { name: name, code: code };\n    try { if (window.SidNative) window.SidNative.saveRegistration(name, code); } catch (e) {}\n    S.rev++;")
 sub("S.reg = null; S.rev++; patchAll(); toast('등록된 학생증을 삭제했어요');",
-    "S.reg = null; try { if (window.SidNative) window.SidNative.clearRegistration(); } catch (e) {} S.rev++; patchAll(); toast('등록된 학생증을 삭제했어요');", count=2)
+    "S.reg = null; S.photo = null; try { if (window.SidNative) window.SidNative.clearRegistration(); } catch (e) {} S.rev++; patchAll(); toast('등록된 학생증을 삭제했어요');", count=2)
 
 # ── 2) 스캔 버튼 → 템플릿 페이지 기반 네이티브 스캔 ──
 sub("  function startScan() {\n    if (S.step !== 'IDLE') return;",
     "  function startScan() {\n    if (window.SidNative) { openScanPage(); return; }\n    if (S.step !== 'IDLE') return;")
+
+# 스캔 페이지 인스턴스를 보관 (단계마다 제목을 바꾸기 위해)
+sub("          onCreate(e) { super.onCreate(e); this.setTitle(title); }",
+    "          onCreate(e) { super.onCreate(e); this.setTitle(title); if (title === '학생증 스캔') SCAN.page = this; }")
+
+# 학생증 탭 카드의 프로필 자리를 내 얼굴 사진으로 (없으면 기존 아이콘)
+sub("<div class=\"sid-dev-ic\">' + avatar +",
+    "<div class=\"sid-dev-ic' + (S.photo ? ' has-photo' : '') + '\">' + (S.photo ? '<img class=\"sid-photo\" alt=\"프로필 사진\" src=\"' + S.photo + '\">' : avatar) +")
+sub("  function renderId() {\n    var tab = document.querySelector('vx-devices-tab');\n    if (!tab) return;",
+    "  function renderId() {\n    var tab = document.querySelector('vx-devices-tab');\n    if (!tab) return;\n    if (S.reg && S.photo === undefined) { try { S.photo = window.SidNative ? (window.SidNative.getProfile() || null) : null; } catch (e) { S.photo = null; } }")
+# 사진을 누르면 확대 모달
+sub("      if (node.matches('.ux-app-page-information__license')) { act = 'lic'; break; }",
+    "      if (node.matches('.ux-app-page-information__license')) { act = 'lic'; break; }\n      if (node.matches('#sid-id-view .sid-dev-ic.has-photo')) { act = 'photo'; break; }")
+sub("    else if (act === 'tips') openTips();",
+    "    else if (act === 'tips') openTips();\n    else if (act === 'photo') showPhoto();")
 
 # 스캔 페이지를 템플릿 페이지 목록에 등록
 sub("        SidTipsPage: make('유용한 정보', function (b) {",
@@ -62,13 +78,18 @@ html = and_re.sub("var and = [['AndroidX (AppCompat, Core, Activity, WebKit)', '
 
 # ── 3) 스캔 페이지 + 확인 모달 (템플릿 부품) ──
 SCAN_JS = r"""
-  /* ───── 네이티브 스캔: 화면은 템플릿 부품(정보 페이지 + Dialog), 카메라/인식은 앱이 처리 ───── */
-  var SCAN = { frame: null, hint: null, raf: 0, key: '', stableAt: 0, started: false, seen: false, born: 0 };
-  var HINT_DEFAULT = '중동중학교 학생증을 가이드라인 안에 대주세요';
+  /* ───── 네이티브 스캔: 화면은 템플릿 부품(정보 페이지 + Dialog), 카메라/인식은 앱이 처리 ─────
+     단계: id(글자/바코드) → cardface(학생증 앞면 얼굴) → selfie(전면카메라 본인 확인) → 프로필 사진 확인 → 등록 */
+  var SCAN = { frame: null, hint: null, raf: 0, key: '', stableAt: 0, started: false, seen: false, born: 0, page: null, step: 'id', pending: null, fails: 0 };
+  var STEP = {
+    id:       { title: '학생증 스캔', hint: '중동중학교 학생증을 가이드라인 안에 대주세요', mode: 'id' },
+    cardface: { title: '학생증 앞면', hint: '학생증 앞면(얼굴 사진이 있는 면)을 가이드라인 안에 대주세요', mode: 'cardface' },
+    selfie:   { title: '얼굴 확인', hint: '얼굴을 틀 안에 맞춰주세요', mode: 'selfie' }
+  };
   var DLG = null;
 
   function nat(fn) {
-    try { var a = Array.prototype.slice.call(arguments, 1); window.SidNative[fn].apply(window.SidNative, a); } catch (e) { console.error('[native]', fn, e); }
+    try { var a = Array.prototype.slice.call(arguments, 1); return window.SidNative[fn].apply(window.SidNative, a); } catch (e) { console.error('[native]', fn, e); }
   }
   function scanCss() {
     if ($('sid-scan-css')) return;
@@ -77,6 +98,7 @@ SCAN_JS = r"""
       '.sid-scan{display:flex;flex-direction:column;align-items:center;gap:20px;padding:4px 16px 24px;box-sizing:border-box}' +
       '.sid-scan-hint{margin:0;min-height:42px;text-align:center;font-size:15px;line-height:1.4;color:var(--color-labels-secondary)}' +
       '.sid-scan-frame{box-sizing:border-box;width:min(270px,72vw);height:min(420px,62vh);border-radius:22px;border:3px dashed var(--color-labels-secondary);transition:border-color .2s}' +
+      '.sid-scan-frame.oval{width:min(250px,68vw);height:min(330px,46vh);border-radius:50%}' +
       '.sid-scan-frame.detected{border-style:solid;border-color:var(--color-accents-blue)}' +
       '.sid-confirm{display:flex;flex-direction:column;align-items:center;gap:14px}' +
       '.sid-confirm-thumb{width:110px;height:165px;object-fit:cover;border-radius:14px;border:2px solid var(--color-list-item-divider)}' +
@@ -84,21 +106,39 @@ SCAN_JS = r"""
       '.sid-confirm-rows>div{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;font-size:15px}' +
       '.sid-confirm-rows>div+div{border-top:1px solid var(--color-list-item-divider)}' +
       '.sid-confirm-rows span{color:var(--color-labels-secondary)}' +
-      '.sid-confirm-rows b{color:var(--color-labels-primary);font-weight:700}';
+      '.sid-confirm-rows b{color:var(--color-labels-primary);font-weight:700}' +
+      '.sid-portrait{width:min(200px,50vw);aspect-ratio:3/4;object-fit:cover;border-radius:20px;background:var(--color-list-item-divider)}' +
+      '.sid-note{margin:0;text-align:center;font-size:13px;line-height:1.4;color:var(--color-labels-secondary)}' +
+      '#sid-id-view .sid-dev-ic.has-photo{overflow:hidden;padding:0}' +
+      '#sid-id-view .sid-photo{width:100%;height:100%;object-fit:cover;object-position:50% 22%;display:block}' +
+      '.sid-photo-wrap{display:flex;justify-content:center}' +
+      '.sid-photo-big{width:min(280px,70vw);aspect-ratio:3/4;object-fit:cover;border-radius:24px;background:var(--color-list-item-divider)}';
     document.head.appendChild(st);
   }
 
   function openScanPage() { scanCss(); ensurePages(function () { try { PG.PM.startPage('SidScanPage', 'SidScanPage', {}, {}); } catch (e) { console.error(e); } }); }
   function closeScanPage() { try { history.back(); } catch (e) {} }
 
-  // 정보 페이지 본문: 안내 문구 + 카드 모양 자리. (카드 모양 밖은 템플릿 페이지 배경 그대로)
+  // 정보 페이지 본문: 안내 문구 + 틀. (틀 밖은 템플릿 페이지 배경 그대로)
   function buildScanBody(b) {
     var w = document.createElement('div'); w.className = 'sid-scan';
-    var h = document.createElement('p'); h.className = 'sid-scan-hint'; h.textContent = HINT_DEFAULT;
+    var h = document.createElement('p'); h.className = 'sid-scan-hint';
     var f = document.createElement('div'); f.className = 'sid-scan-frame';
     w.appendChild(h); w.appendChild(f); b.appendChild(w);
-    SCAN.hint = h; SCAN.frame = f; SCAN.key = ''; SCAN.started = false; SCAN.seen = false; SCAN.born = performance.now();
+    SCAN.hint = h; SCAN.frame = f; SCAN.seen = false; SCAN.born = performance.now();
+    SCAN.pending = null; SCAN.fails = 0;
+    setStep('id');
     trackScanFrame();
+  }
+  // 단계 전환: 안내/제목/틀 모양을 바꾸고, 틀이 안정되면 해당 단계의 카메라를 다시 켠다
+  function setStep(step) {
+    SCAN.step = step;
+    var d = STEP[step];
+    if (SCAN.hint) SCAN.hint.textContent = d.hint;
+    if (SCAN.frame) { SCAN.frame.classList.toggle('oval', step === 'selfie'); SCAN.frame.classList.remove('detected'); }
+    try { if (SCAN.page && SCAN.page.setTitle) SCAN.page.setTitle(d.title); } catch (e) {}
+    nat('cameraStop');
+    SCAN.started = false; SCAN.key = '';
   }
   function frameRect() {
     var r = SCAN.frame.getBoundingClientRect(), bw = 3;       // 테두리(3px) 안쪽만 카메라
@@ -118,9 +158,9 @@ SCAN_JS = r"""
         if (key !== SCAN.key) {
           SCAN.key = key; SCAN.stableAt = performance.now();
           if (SCAN.started) nat('cameraRect', r.x, r.y, r.w, r.h);
-        } else if (!SCAN.started && performance.now() - SCAN.stableAt > 220) {
+        } else if (!SCAN.started && !SCAN.dialogOpen && performance.now() - SCAN.stableAt > 220) {
           SCAN.started = true;
-          nat('cameraStart', r.x, r.y, r.w, r.h, 19);          // 모서리 반지름 = 22 - 테두리 3
+          nat('cameraStart', STEP[SCAN.step].mode, r.x, r.y, r.w, r.h, SCAN.step === 'selfie' ? -1 : 19);   // 타원은 -1, 카드는 모서리 22 - 테두리 3
         }
       }
       SCAN.raf = requestAnimationFrame(tick);
@@ -129,7 +169,9 @@ SCAN_JS = r"""
   function endScanSession() {
     cancelAnimationFrame(SCAN.raf);
     if (SCAN.started || SCAN.frame) nat('cameraStop');
+    nat('discardFace');                                         // 임시로 들고 있던 증명사진 특징값/프로필 후보는 지운다
     SCAN.frame = null; SCAN.hint = null; SCAN.started = false; SCAN.key = ''; SCAN.seen = false;
+    SCAN.pending = null; SCAN.step = 'id'; SCAN.fails = 0; SCAN.dialogOpen = false;
   }
 
   // 네이티브 → JS
@@ -139,6 +181,8 @@ SCAN_JS = r"""
   };
   window.__sidScanError = function (msg) { toast(msg); closeScanPage(); };
   window.__sidScanResult = function (name, code, thumb) { showConfirm(name, code, thumb); };
+  window.__sidFaceCard = function () { setStep('selfie'); };            // 앞면 얼굴 확보 → 전면카메라 단계
+  window.__sidFaceSelfie = function (r) { onSelfie(r); };
 
   // 템플릿의 Dialog 클래스 (webpack 모듈 29946). 앱의 다른 다이얼로그와 같은 부품.
   function dialogClass() {
@@ -147,14 +191,24 @@ SCAN_JS = r"""
     try { DLG = r(29946).l; } catch (e) { console.error('Dialog 모듈 로드 실패', e); }
     return DLG;
   }
+  function openDialog(id, opt) {
+    var D = dialogClass();
+    if (!D) { toast('확인 창을 열 수 없어요'); return null; }
+    SCAN.dialogOpen = true;
+    var userCancel = opt.onCanceled;
+    opt.onCanceled = function () { SCAN.dialogOpen = false; if (userCancel) userCancel(); };
+    var d = new D(id, opt); d.show(); return d;
+  }
+  // keepBlocked: 페이지가 곧 닫히는 경우 — 카메라가 다시 켜지지 않도록 막아 둔다 (endScanSession 에서 풀림)
+  function hideThen(dlg, fn, keepBlocked) { if (!keepBlocked) SCAN.dialogOpen = false; Promise.resolve(dlg.hide()).then(fn); }
+
+  // ① 글자/바코드 확인 모달
   function retryScan() {
-    if (SCAN.hint) SCAN.hint.textContent = HINT_DEFAULT;
+    if (SCAN.hint) SCAN.hint.textContent = STEP.id.hint;
     if (SCAN.frame) SCAN.frame.classList.remove('detected');
     nat('cameraResume');
   }
   function showConfirm(name, code, thumb) {
-    var D = dialogClass();
-    if (!D) { retryScan(); toast('확인 창을 열 수 없어요'); return; }
     var box = document.createElement('div'); box.className = 'sid-confirm';
     box.innerHTML = '<img class="sid-confirm-thumb" alt="학생증 스캔 이미지"><div class="sid-confirm-rows">' +
       '<div><span>인식된 이름</span><b class="sid-n"></b></div><div><span>바코드 식별 코드</span><b class="sid-c"></b></div></div>';
@@ -162,34 +216,107 @@ SCAN_JS = r"""
     box.querySelector('.sid-n').textContent = name;
     box.querySelector('.sid-c').textContent = code;
     var accepted = false;
-    new D('sid-confirm', {
+    openDialog('sid-confirm', {
       title: '정보를 확인해주세요',
       contents: box,
       cancelable: true,
       disposable: true,
-      onCanceled: function () { if (!accepted) retryScan(); },      // 닫기/뒤로가기 = 다시 스캔
+      onCanceled: function () { if (!accepted) retryScan(); },      // 닫기/뒤로가기 = 재스캔
       actions: {                                                    // 템플릿 Dialog 는 적은 순서의 반대로 놓으므로 ok 를 먼저
         ok: {
           label: '확인', type: 'normal',
           onClicked: function (dlg) {
             accepted = true;
-            register(name, code);
-            // 다이얼로그가 완전히 닫힌 뒤에 스캔 페이지를 닫아야 뒤로가기가 페이지에 전달된다
-            Promise.resolve(dlg.hide()).then(function () { closeScanPage(); });
+            SCAN.pending = { name: name, code: code };
+            SCAN.fails = 0;
+            // 다이얼로그가 완전히 닫힌 뒤에 다음 단계로 (본인 확인 전에는 등록하지 않는다)
+            hideThen(dlg, function () {
+              var can = false;
+              try { can = !!window.SidNative.faceMatchAvailable(); } catch (e) {}
+              setStep(can ? 'cardface' : 'selfie');
+            });
           }
         },
-        retry: { label: '재스캔', type: 'cancel' }                // type 'cancel' → Dialog 가 알아서 닫고 onCanceled 호출
+        retry: { label: '재스캔', type: 'cancel' }                  // type 'cancel' → Dialog 가 알아서 닫고 onCanceled 호출
       }
+    });
+  }
+
+  // ② 전면카메라 결과: 일치하지 않으면 안내, 통과하면 프로필 사진 확인
+  function onSelfie(r) {
+    if (r.matched === false) { showFail(); return; }
+    if (!r.photo) { toast('프로필 사진을 만들지 못했어요. 다시 시도해 주세요'); setStep('selfie'); return; }
+    showPortrait(r);
+  }
+  function showFail() {
+    SCAN.fails++;
+    var last = SCAN.fails >= 3;
+    var opt = {
+      title: '본인 확인에 실패했어요',
+      message: last ? '여러 번 확인되지 않았어요. 학생증을 확인한 뒤 처음부터 다시 시도해 주세요.'
+                    : '학생증 사진과 얼굴이 일치하지 않아요. 밝은 곳에서 정면을 바라보고 다시 시도해 주세요.',
+      cancelable: false, disposable: true
+    };
+    if (last) {
+      opt.actions = { ok: { label: '닫기', type: 'normal', onClicked: function (dlg) { hideThen(dlg, function () { nat('discardFace'); closeScanPage(); }, true); } } };
+    } else {
+      opt.actions = {
+        ok: { label: '다시 시도', type: 'normal', onClicked: function (dlg) { hideThen(dlg, function () { setStep('selfie'); }); } },
+        back: { label: '앞면 다시 찍기', type: 'cancel' }
+      };
+      opt.onCanceled = function () { setStep('cardface'); };
+    }
+    openDialog('sid-face-fail', opt);
+  }
+  function showPortrait(r) {
+    var box = document.createElement('div'); box.className = 'sid-confirm';
+    var img = document.createElement('img'); img.className = 'sid-portrait'; img.alt = '프로필 사진'; img.src = r.photo;
+    var note = document.createElement('p'); note.className = 'sid-note';
+    note.textContent = r.matched === true ? '학생증 사진과 일치해요. 이 사진이 학생증에 표시돼요.'
+                                           : '얼굴 비교 모델이 없어 학생증 사진과의 대조는 하지 않았어요.';
+    box.appendChild(img); box.appendChild(note);
+    var accepted = false;
+    openDialog('sid-portrait', {
+      title: '프로필 사진',
+      contents: box,
+      cancelable: true,
+      disposable: true,
+      onCanceled: function () { if (!accepted) setStep('selfie'); },   // 재촬영
+      actions: {
+        ok: {
+          label: '확인', type: 'normal',
+          onClicked: function (dlg) {
+            accepted = true;
+            var p = SCAN.pending;
+            var url = nat('commitProfile');                          // 프로필 사진 저장
+            S.photo = url || null;
+            hideThen(dlg, function () { if (p) register(p.name, p.code); closeScanPage(); }, true);
+          }
+        },
+        retry: { label: '재촬영', type: 'cancel' }
+      }
+    });
+  }
+
+  // ③ 학생증 탭의 프로필 사진을 누르면 확대
+  function showPhoto() {
+    if (!S.photo) return;
+    var box = document.createElement('div'); box.className = 'sid-photo-wrap';
+    var img = document.createElement('img'); img.className = 'sid-photo-big'; img.alt = '프로필 사진'; img.src = S.photo;
+    box.appendChild(img);
+    var D = dialogClass(); if (!D) return;
+    new D('sid-photo', {
+      title: S.reg ? S.reg.name : '프로필 사진', contents: box, cancelable: true, cancelOnTouchOutside: true, disposable: true,
+      actions: { close: { label: '닫기', type: 'normal', onClicked: function (dlg) { dlg.hide(); } } }
     }).show();
   }
 
+  scanCss();
   window.__sidRegister = register;
   window.__sidToast = toast;
 
   /* ───── 시작 ───── */"""
-sub("  window.__sidRegister = register;\n  window.__sidToast = toast;\n\n  /* ───── 시작 ───── */", "@@ANCHOR@@") if "window.__sidRegister" in html else None
-if "@@ANCHOR@@" not in html:
-    sub("  /* ───── 시작 ───── */", "@@ANCHOR@@")
+sub("  /* ───── 시작 ───── */", "@@ANCHOR@@")
 sub("@@ANCHOR@@", SCAN_JS.lstrip("\n"))
 
 # ── 5) env(safe-area-inset-*) 고정 + 6) 다크모드 배경 ──

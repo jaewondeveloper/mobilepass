@@ -1,12 +1,16 @@
 package kr.jdms.studentid
 
 import android.content.Context
+import android.util.Base64
+import java.io.File
 import kr.jdms.studentid.scan.CardParser
 import org.json.JSONObject
 
 /** 등록된 학생증 정보를 앱 전용 저장소에 보관 (백업 비활성화, 다른 앱에서 접근 불가). */
 class CardStore(context: Context) {
-    private val prefs = context.applicationContext.getSharedPreferences("student_card", Context.MODE_PRIVATE)
+    private val appContext = context.applicationContext
+    private val prefs = appContext.getSharedPreferences("student_card", Context.MODE_PRIVATE)
+    private val profileFile get() = File(appContext.filesDir, "profile.png")
 
     fun save(name: String, code: String): Boolean {
         val c = CardParser.normalizeCode(code) ?: return false
@@ -18,6 +22,31 @@ class CardStore(context: Context) {
 
     fun clear() {
         prefs.edit().clear().apply()
+        clearProfile()
+    }
+
+    /** 프로필 사진(배경 제거한 PNG)을 앱 전용 저장소에 저장. 임시 파일에 쓴 뒤 교체해서 중간에 끊겨도 깨지지 않게 한다. */
+    fun saveProfile(png: ByteArray): Boolean = try {
+        val tmp = File(appContext.filesDir, "profile.png.tmp")
+        tmp.writeBytes(png)
+        tmp.renameTo(profileFile) || run { profileFile.delete(); tmp.renameTo(profileFile) }
+    } catch (e: Exception) {
+        false
+    }
+
+    fun clearProfile() {
+        runCatching { profileFile.delete() }
+    }
+
+    /** 웹에서 바로 <img src> 로 쓸 수 있는 data URL. 없으면 null */
+    fun profileDataUrl(): String? {
+        val f = profileFile
+        if (!f.exists()) return null
+        return try {
+            "data:image/png;base64," + Base64.encodeToString(f.readBytes(), Base64.NO_WRAP)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     /** JS에 넘길 JSON. 없으면 null. */

@@ -11,6 +11,22 @@
     <string name="hint_need_school">중동중학교 학생증 앞면이 보이도록 맞춰주세요</string>
     <string name="hint_lost">인식이 어려워요. 카드를 평평하게 들고 거리를 조절해 주세요</string>
 
+    <string name="face_card_hint">학생증 앞면(얼굴 사진이 있는 면)을 가이드라인 안에 대주세요</string>
+    <string name="face_card_none">얼굴 사진이 보이도록 카드를 맞춰주세요</string>
+    <string name="face_card_small">얼굴 사진이 더 크게 보이도록 카드를 가까이 대주세요</string>
+    <string name="face_card_reading">얼굴 사진을 읽는 중이에요. 움직이지 말고 유지하세요</string>
+    <string name="face_self_hint">얼굴을 틀 안에 맞춰주세요</string>
+    <string name="face_self_many">한 명만 화면에 나오게 해주세요</string>
+    <string name="face_self_center">얼굴을 틀 가운데에 맞춰주세요</string>
+    <string name="face_self_closer">조금 더 가까이 와 주세요</string>
+    <string name="face_self_front">정면을 바라봐 주세요</string>
+    <string name="face_self_hold">정면을 보고 잠시 유지해 주세요</string>
+    <string name="face_self_blink">눈을 한 번 깜빡여 주세요</string>
+    <string name="face_self_dark">얼굴이 어두워요. 밝은 곳으로 이동해 주세요</string>
+    <string name="face_self_glare">얼굴에 빛이 너무 강해요. 조명을 피해주세요</string>
+    <string name="face_self_working">확인하는 중이에요...</string>
+    <string name="err_portrait">프로필 사진을 만들지 못했어요. 다시 시도해 주세요</string>
+
     <string name="err_permission">카메라 권한을 허용해주세요</string>
     <string name="err_camera">카메라를 열 수 없어요</string>
     <string name="err_no_camera">이 기기에서는 카메라를 사용할 수 없어요</string>

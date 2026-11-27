@@ -47,6 +47,12 @@ dependencies {
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
     implementation("com.google.mlkit:text-recognition-korean:16.0.1")
 
+    // 얼굴: 검출/랜드마크/눈 깜빡임, 배경 제거(셀피 세그멘테이션) - 모두 온디바이스
+    implementation("com.google.mlkit:face-detection:16.1.7")
+    implementation("com.google.mlkit:segmentation-selfie:16.0.0-beta6")
+    // 얼굴 비교(임베딩) 모델 실행용. 모델 파일은 assets/models/ 에 넣는다 (docs: README '얼굴 비교 모델')
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.19.2")
+
     implementation("com.google.android.gms:play-services-tasks:18.2.0")
 
     testImplementation("junit:junit:4.13.2")

@@ -39,6 +39,9 @@ import androidx.core.view.doOnLayout
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewFeature
+import kr.jdms.studentid.face.FaceScanner
+import kr.jdms.studentid.face.FaceSession
+import kr.jdms.studentid.face.SFaceEmbedder
 import kr.jdms.studentid.scan.CardScanner
 import org.json.JSONObject
 import kotlin.math.max
@@ -60,6 +63,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var previewView: PreviewView
     private lateinit var store: CardStore
     private var scanner: CardScanner? = null
+    private var faceScanner: FaceScanner? = null
+
+    /** 얼굴 비교 모델은 용량이 커서 앱 시작 때 백그라운드에서 미리 올린다 */
+    private val embedder = lazy(LazyThreadSafetyMode.SYNCHRONIZED) { SFaceEmbedder(applicationContext) }
+    private var camMode = MODE_ID
 
     private var webViewDestroyed = false
     private var pageLoaded = false
@@ -119,6 +127,7 @@ class MainActivity : AppCompatActivity() {
         })
 
         scanner = CardScanner(this, previewView, scanListener).also { it.prewarm() }
+        Thread { embedder.value }.start()
     }
 
     // ───────────────────────── WebView ─────────────────────────
@@ -217,7 +226,8 @@ class MainActivity : AppCompatActivity() {
             visibility = View.GONE
             outlineProvider = object : ViewOutlineProvider() {
                 override fun getOutline(view: View, outline: Outline) {
-                    outline.setRoundRect(0, 0, view.width, view.height, (camRadius * resources.displayMetrics.density).toFloat())
+                    if (camRadius < 0) outline.setOval(0, 0, view.width, view.height)       // 얼굴 확인: 타원
+                    else outline.setRoundRect(0, 0, view.width, view.height, (camRadius * resources.displayMetrics.density).toFloat())
                 }
             }
             clipToOutline = true
@@ -252,12 +262,22 @@ class MainActivity : AppCompatActivity() {
         if (!cameraWanted) return
         applyCameraRect()
         previewView.visibility = View.VISIBLE
-        previewView.doOnLayout { scanner?.start() }
+        previewView.doOnLayout {
+            when (camMode) {
+                MODE_ID -> { faceScanner?.stop(); scanner?.start() }
+                MODE_CARD_FACE -> { scanner?.stop(); faceScanner().start(FaceScanner.Mode.CARD) }
+                MODE_SELFIE -> { scanner?.stop(); faceScanner().start(FaceScanner.Mode.SELFIE) }
+            }
+        }
     }
+
+    private fun faceScanner(): FaceScanner =
+        faceScanner ?: FaceScanner(this, previewView, embedder.value, faceListener).also { faceScanner = it }
 
     private fun stopCamera() {
         cameraWanted = false
         scanner?.stop()
+        faceScanner?.stop()
         previewView.visibility = View.GONE
     }
 
@@ -277,6 +297,31 @@ class MainActivity : AppCompatActivity() {
             previewView.visibility = View.INVISIBLE
             val thumb = "data:image/jpeg;base64," + Base64.encodeToString(thumbJpeg, Base64.NO_WRAP)
             js("window.__sidScanResult && window.__sidScanResult(${JSONObject.quote(name)}, ${JSONObject.quote(code)}, ${JSONObject.quote(thumb)})")
+        }
+
+        override fun onError(message: String) = scanError(message)
+    }
+
+    private val faceListener = object : FaceScanner.Listener {
+        override fun onState(hint: String, detected: Boolean) {
+            js("window.__sidScanState && window.__sidScanState(${JSONObject.quote(hint)}, $detected)")
+        }
+
+        override fun onCardFace() {
+            faceScanner?.stop()
+            previewView.visibility = View.INVISIBLE
+            js("window.__sidFaceCard && window.__sidFaceCard()")
+        }
+
+        override fun onSelfie(result: FaceScanner.SelfieResult) {
+            faceScanner?.stop()
+            previewView.visibility = View.INVISIBLE
+            val png = result.png
+            val o = JSONObject()
+                .put("matched", result.matched ?: JSONObject.NULL)
+                .put("score", result.score?.toDouble() ?: JSONObject.NULL)
+                .put("photo", if (png != null) "data:image/png;base64," + Base64.encodeToString(png, Base64.NO_WRAP) else JSONObject.NULL)
+            js("window.__sidFaceSelfie && window.__sidFaceSelfie($o)")
         }
 
         override fun onError(message: String) = scanError(message)
@@ -373,10 +418,14 @@ class MainActivity : AppCompatActivity() {
             store.clear()
         }
 
-        /** 스캔 페이지의 카드 모양 영역(CSS px)에 카메라를 비추기 시작 */
+        /**
+         * 스캔 페이지의 틀(CSS px) 위에 카메라를 비추기 시작.
+         * mode: "id"(학생증 글자/바코드) · "cardface"(앞면 얼굴, 후면) · "selfie"(본인 확인, 전면). radius < 0 이면 타원.
+         */
         @JavascriptInterface
-        fun cameraStart(x: Double, y: Double, w: Double, h: Double, radius: Double) {
+        fun cameraStart(mode: String, x: Double, y: Double, w: Double, h: Double, radius: Double) {
             runOnUiThread {
+                camMode = mode
                 camX = x; camY = y; camW = w; camH = h; camRadius = radius
                 cameraWanted = true
                 if (!packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
@@ -394,7 +443,7 @@ class MainActivity : AppCompatActivity() {
         fun cameraRect(x: Double, y: Double, w: Double, h: Double) {
             runOnUiThread {
                 camX = x; camY = y; camW = w; camH = h
-                if (previewView.visibility == View.VISIBLE && applyCameraRect()) scanner?.rebind()
+                if (previewView.visibility == View.VISIBLE && applyCameraRect() && camMode == MODE_ID) scanner?.rebind()
             }
         }
 
@@ -402,6 +451,28 @@ class MainActivity : AppCompatActivity() {
         fun cameraStop() {
             runOnUiThread { stopCamera() }
         }
+
+        /** 얼굴 비교 모델이 앱에 들어 있는지 (없으면 본인 '비교'는 건너뛰고 프로필 사진만 만든다) */
+        @JavascriptInterface
+        fun faceMatchAvailable(): Boolean = embedder.value.available
+
+        /** 확인된 프로필 사진을 저장하고 data URL 을 돌려준다. 임시로 들고 있던 얼굴 정보는 지운다. */
+        @JavascriptInterface
+        fun commitProfile(): String? {
+            val png = FaceSession.pendingPortrait
+            FaceSession.clear()
+            if (png != null) store.saveProfile(png)
+            return store.profileDataUrl()
+        }
+
+        /** 얼굴 단계를 취소/실패로 끝낼 때: 임시로 들고 있던 증명사진 특징값·프로필 후보를 지운다 */
+        @JavascriptInterface
+        fun discardFace() {
+            FaceSession.clear()
+        }
+
+        @JavascriptInterface
+        fun getProfile(): String? = store.profileDataUrl()
 
         /** 확인 모달에서 '다시 스캔' */
         @JavascriptInterface
@@ -427,6 +498,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         scanner?.release()
+        faceScanner?.release()
+        FaceSession.clear()
+        if (embedder.isInitialized()) embedder.value.close()
         root.removeAllViews()
         if (!webViewDestroyed) webView.destroy()
         super.onDestroy()
@@ -434,6 +508,9 @@ class MainActivity : AppCompatActivity() {
 
     private companion object {
         const val ASSET_HOST = "appassets.androidplatform.net"
+        const val MODE_ID = "id"
+        const val MODE_CARD_FACE = "cardface"
+        const val MODE_SELFIE = "selfie"
 
         // 웹 앱의 뒤로가기 규칙(HTML 내부 'back' 핸들러)과 같은 기준: 홈 탭이 아니거나 열린 페이지가 2개 이상이면 뒤로 갈 곳이 있음
         const val PROBE_CAN_POP_JS =
