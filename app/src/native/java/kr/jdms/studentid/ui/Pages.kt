@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,11 +22,18 @@ import androidx.compose.ui.unit.dp
 /** 뒤로가기 머리글(높이 68) 아래에 내용이 이어지는 페이지 틀 */
 @Composable
 private fun PageFrame(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
-    // 머리글은 스크롤 위에 떠 있고(내용이 그 뒤로 지나감), 스크롤되면 뒤로가기 버튼 뒤에 유리 배경이 생긴다
+    // 머리글은 스크롤 위에 떠 있고(내용이 그 뒤로 지나감), 스크롤되면 뒤로가기 버튼 뒤에 흐린 유리 배경이 생긴다
+    val c = LocalColors.current
     val sc = rememberScrollState()
+    val layer = androidx.compose.ui.graphics.rememberGraphicsLayer()
+    val backdrop = remember(layer) { Backdrop(layer) }
     Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().scrollEdgeFade(sc).verticalScroll(sc).padding(top = 68.dp, bottom = 24.dp)) { content() }
-        BackHeader(title, onBack, glass = sc.value > 0)
+        Box(Modifier.fillMaxSize().recordBackdrop(backdrop).background(c.pageBg)) {
+            Column(Modifier.fillMaxSize().scrollEdgeFade(sc).verticalScroll(sc).padding(top = 68.dp, bottom = 24.dp)) { content() }
+        }
+        androidx.compose.runtime.CompositionLocalProvider(LocalBackdrop provides backdrop) {
+            BackHeader(title, onBack, glass = sc.value > 0)
+        }
     }
 }
 

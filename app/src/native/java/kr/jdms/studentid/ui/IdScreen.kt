@@ -34,9 +34,8 @@ private val InkDark = Color(0xFF010102)
 private val InkMuted = Color(0x73010102)
 
 @Composable
-fun IdTab(state: AppState, onScan: () -> Unit, onPhoto: () -> Unit, onTitle: () -> Unit = {}) {
+fun IdTab(state: AppState, onScan: () -> Unit, onPhoto: () -> Unit, sc: androidx.compose.foundation.ScrollState = rememberScrollState()) {
     val c = LocalColors.current
-    val sc = rememberScrollState()
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().scrollEdgeFade(sc).verticalScroll(sc)) {
             Box(Modifier.fillMaxWidth().height(660.dp)) {
@@ -74,7 +73,6 @@ fun IdTab(state: AppState, onScan: () -> Unit, onPhoto: () -> Unit, onTitle: () 
                 }
             }
         }
-        SchoolTitle(onTitle, glass = sc.value > 0)
     }
 }
 

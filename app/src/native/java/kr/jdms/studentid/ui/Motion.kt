@@ -248,24 +248,45 @@ fun Modifier.pressScaleObserver(scale: Float): Modifier {
     }
 }
 
-/** 배경을 기록해 둔 레이어. 반투명 + backdrop-filter: blur 인 요소(학교 선택 메뉴, 토스트)가 뒤 화면을 흐리게 비추는 데 쓴다. */
-val LocalBackdrop = androidx.compose.runtime.compositionLocalOf<androidx.compose.ui.graphics.layer.GraphicsLayer?> { null }
+/**
+ * 배경 흐림(backdrop-filter: blur)용: 뒤 화면을 기록해 둔 레이어와, 그 레이어가 화면(root) 어디에서 시작하는지.
+ * 흐리게 비칠 요소(탭바, 상단 유리 버튼, 토스트)는 기록 대상 '바깥'에 있어야 자기 자신을 다시 그리지 않는다.
+ */
+class Backdrop(val layer: androidx.compose.ui.graphics.layer.GraphicsLayer) {
+    var origin: androidx.compose.ui.geometry.Offset = androidx.compose.ui.geometry.Offset.Zero
+}
+
+val LocalBackdrop = androidx.compose.runtime.compositionLocalOf<Backdrop?> { null }
+/** 화면 캡처 테스트(소프트웨어 캔버스)에서는 끈다 */
+val LocalBackdropEnabled = androidx.compose.runtime.compositionLocalOf { true }
+
+/** 이 상자의 그려진 모습을 [bd] 에 기록한다 (뒤 화면 역할을 할 내용에 붙인다). */
+@Composable
+fun Modifier.recordBackdrop(bd: Backdrop): Modifier {
+    if (!LocalBackdropEnabled.current) return this
+    return this.onGloballyPositioned { bd.origin = it.positionInRoot() }.drawWithContent {
+        bd.layer.record(this, layoutDirection, androidx.compose.ui.unit.IntSize(size.width.toInt().coerceAtLeast(1), size.height.toInt().coerceAtLeast(1))) {
+            this@drawWithContent.drawContent()
+        }
+        drawLayer(bd.layer)
+    }
+}
 
 /**
- * CSS backdrop-filter: blur(radius) 와 같은 효과: 이 요소 뒤에 그려진 화면을 가져와 흐리게 그린다.
- * (안드로이드 12 이상. 그보다 낮으면 반투명 배경만 보인다)
+ * CSS backdrop-filter: blur(radius): 이 요소 뒤에 그려진 화면(기록된 레이어)을 가져와 흐리게 그린다. (안드로이드 12 이상)
  */
 @Composable
 fun Modifier.backdropBlur(radius: androidx.compose.ui.unit.Dp): Modifier {
-    val backdrop = LocalBackdrop.current ?: return this
-    if (android.os.Build.VERSION.SDK_INT < 31) return this
+    val bd = LocalBackdrop.current ?: return this
+    if (!LocalBackdropEnabled.current || android.os.Build.VERSION.SDK_INT < 31) return this
     val layer = androidx.compose.ui.graphics.rememberGraphicsLayer()
     var origin by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
     return this.onGloballyPositioned { origin = it.positionInRoot() }.drawBehind {
         val r = radius.toPx()
         layer.renderEffect = androidx.compose.ui.graphics.BlurEffect(r, r, androidx.compose.ui.graphics.TileMode.Clamp)
         layer.record(this, layoutDirection, androidx.compose.ui.unit.IntSize(size.width.toInt().coerceAtLeast(1), size.height.toInt().coerceAtLeast(1))) {
-            translate(-origin.x, -origin.y) { drawLayer(backdrop) }
+            val d = origin - bd.origin            // 기록된 화면 안에서 이 요소가 놓인 자리
+            translate(-d.x, -d.y) { drawLayer(bd.layer) }
         }
         drawLayer(layer)
     }
@@ -277,9 +298,9 @@ fun Modifier.backdropBlur(radius: androidx.compose.ui.unit.Dp): Modifier {
 //  - 아래: 아래에서 위로 92 높이 (맨 아래까지 가면 사라짐)
 
 private val TopFadeStops = floatArrayOf(0f, 10.06f, 19.27f, 27.69f, 35.36f, 42.34f, 48.69f, 54.45f, 59.68f, 64.43f, 68.75f, 72.7f, 76.32f, 79.67f, 82.81f, 85.78f, 88.64f, 91.44f, 94.23f, 97.07f, 100f)
-private val TopFadeAlpha = floatArrayOf(1f, .992f, .976f, .945f, .91f, .863f, .81f, .753f, .69f, .627f, .56f, .494f, .43f, .37f, .31f, .26f, .21f, .173f, .145f, .125f, .04f)
+private val TopFadeAlpha = floatArrayOf(1f, .992f, .976f, .945f, .91f, .863f, .81f, .753f, .69f, .627f, .56f, .494f, .43f, .37f, .31f, .26f, .21f, .173f, .145f, .125f, 0f)
 private val BottomFadeStops = floatArrayOf(0f, 6.65f, 12.84f, 18.62f, 24.03f, 29.13f, 33.95f, 38.55f, 42.98f, 47.28f, 51.5f, 55.69f, 59.9f, 64.18f, 68.57f, 73.13f, 77.89f, 82.91f, 88.24f, 93.92f, 100f)
-private val BottomFadeAlpha = floatArrayOf(1f, .992f, .976f, .945f, .91f, .863f, .81f, .753f, .69f, .627f, .56f, .494f, .43f, .37f, .31f, .26f, .21f, .173f, .145f, .125f, .04f)
+private val BottomFadeAlpha = floatArrayOf(1f, .992f, .976f, .945f, .91f, .863f, .81f, .753f, .69f, .627f, .56f, .494f, .43f, .37f, .31f, .26f, .21f, .173f, .145f, .125f, 0f)
 
 /**
  * 스크롤 상자(verticalScroll 보다 바깥에 붙인다)의 위/아래 가장자리를 원본처럼 서서히 흐리게 한다.

@@ -111,9 +111,8 @@ fun SchoolMenu(open: Boolean, top: androidx.compose.ui.unit.Dp, onDismiss: () ->
 }
 
 @Composable
-fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon: () -> Unit, onTitle: () -> Unit = {}) {
+fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon: () -> Unit, sc: androidx.compose.foundation.ScrollState = rememberScrollState()) {
     val c = LocalColors.current
-    val sc = rememberScrollState()
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().scrollEdgeFade(sc).verticalScroll(sc)) {
             Box(Modifier.fillMaxWidth().height(660.dp)) {
@@ -172,8 +171,6 @@ fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon:
                 }
             }
         }
-        // 머리글은 스크롤 밖에 떠 있고, 스크롤되면 뒤에 유리 배경이 생긴다
-        SchoolTitle(onTitle, glass = sc.value > 0)
     }
 }
 

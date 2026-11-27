@@ -139,7 +139,10 @@ fun AppSurface(
     var schoolMenu by remember { mutableStateOf(false) }
     // 뒤 화면을 기록해 두는 레이어: 학교 선택 메뉴/토스트의 배경 흐림(backdrop blur)에 쓴다
     val backdropLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
-    val backdrop = if (backdropEnabled) backdropLayer else null
+    val backdrop = remember(backdropLayer) { Backdrop(backdropLayer) }
+    val homeSc = androidx.compose.foundation.rememberScrollState()
+    val cardSc = androidx.compose.foundation.rememberScrollState()
+    val menuSc = androidx.compose.foundation.rememberScrollState()
     LaunchedEffect(state.tab, state.page) { schoolMenu = false }
 
     // 뒤로가기: 페이지 → 한 단계 닫기, 다른 탭 → 홈, 홈 → 종료(기본 동작)
@@ -147,30 +150,33 @@ fun AppSurface(
         if (state.page != Page.NONE) state.back() else state.tab = Tab.HOME
     }
 
-    androidx.compose.runtime.CompositionLocalProvider(LocalBottomInset provides bottom, LocalBackdrop provides backdrop) {
+    androidx.compose.runtime.CompositionLocalProvider(LocalBottomInset provides bottom, LocalBackdrop provides backdrop, LocalBackdropEnabled provides backdropEnabled) {
     Box(Modifier.fillMaxSize().background(c.pageBg)) {
         PageHost(
             stack = state.stack, pageBg = c.pageBg,
             base = {
-                Box(
-                    Modifier.fillMaxSize().background(c.pageBg).let { m ->
-                        if (backdrop == null) m else m.drawWithContent {
-                            backdrop.record(this, layoutDirection, androidx.compose.ui.unit.IntSize(size.width.toInt().coerceAtLeast(1), size.height.toInt().coerceAtLeast(1))) { this@drawWithContent.drawContent() }
-                            drawLayer(backdrop)
+                Box(Modifier.fillMaxSize().background(c.pageBg)) {
+                    // 뒤 화면(배경 + 탭 내용): 기록해 두었다가 탭바·상단 유리 버튼·토스트가 흐리게 비춘다. 이 상자 '바깥'의 요소는 기록되지 않는다.
+                    Box(Modifier.fillMaxSize().recordBackdrop(backdrop).background(c.pageBg)) {
+                        // 라이트 홈/학생증 탭은 템플릿의 그라데이션 배경, 다크모드는 같은 그라데이션을 어둡게 덮어 어두운 그라데이션으로
+                        if (state.tab != Tab.MENU) {
+                            Image(painterResource(if (state.tab == Tab.HOME) R.drawable.bg_home else R.drawable.bg_devices), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                            if (c.dark) Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color(0xC2010102)))
                         }
-                    },
-                ) {
-                    // 라이트 홈/학생증 탭은 템플릿의 그라데이션 배경 (다크는 평면)
-                    // 다크모드는 같은 그라데이션을 어둡게 덮어 어두운 그라데이션으로
-                    if (state.tab != Tab.MENU) {
-                        Image(painterResource(if (state.tab == Tab.HOME) R.drawable.bg_home else R.drawable.bg_devices), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                        if (c.dark) Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color(0xC2010102)))
+                        Box(Modifier.fillMaxSize().padding(top = top)) {
+                            when (state.tab) {
+                                Tab.HOME -> HomeTab(state, onScan = openScan, onOpenCard = { state.tab = Tab.CARD }, onSoon = { toast.show("데모에서는 준비 중이에요") }, sc = homeSc)
+                                Tab.CARD -> IdTab(state, onScan = openScan, onPhoto = { showPhoto = true }, sc = cardSc)
+                                Tab.MENU -> MenuTab(onReRegister = openScan, onTips = { state.open(Page.TIPS) }, onInfo = { state.open(Page.INFO) }, sc = menuSc)
+                            }
+                        }
                     }
+                    // 머리글(스크롤 내용 위에 떠 있음)과 탭바
                     Box(Modifier.fillMaxSize().padding(top = top)) {
                         when (state.tab) {
-                            Tab.HOME -> HomeTab(state, onScan = openScan, onOpenCard = { state.tab = Tab.CARD }, onSoon = { toast.show("데모에서는 준비 중이에요") }, onTitle = { schoolMenu = true })
-                            Tab.CARD -> IdTab(state, onScan = openScan, onPhoto = { showPhoto = true }, onTitle = { schoolMenu = true })
-                            Tab.MENU -> MenuTab(onReRegister = openScan, onTips = { state.open(Page.TIPS) }, onInfo = { state.open(Page.INFO) }, onSettings = { state.open(Page.SETTINGS) })
+                            Tab.HOME -> Box(Modifier.fillMaxSize()) { SchoolTitle({ schoolMenu = true }, glass = homeSc.value > 0) }
+                            Tab.CARD -> Box(Modifier.fillMaxSize()) { SchoolTitle({ schoolMenu = true }, glass = cardSc.value > 0) }
+                            Tab.MENU -> MenuHeader(menuSc) { state.open(Page.SETTINGS) }
                         }
                     }
                     TabBar(state.tab, { state.tab = it }, Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp + bottom))

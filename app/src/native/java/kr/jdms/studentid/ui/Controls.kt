@@ -103,7 +103,7 @@ fun TabBar(selected: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier
         modifier.width(250.dp).height(56.dp)
             .cssShadow(28.dp, 12.dp, 2.5.dp, if (c.dark) Color(0x59000000) else Color(0x1A000000))
             .cssShadow(28.dp, 4.dp, 0.dp, if (c.dark) Color(0x1A000000) else Color(0x0A000000))
-            .clip(RoundedCornerShape(28.dp)).background(c.tabBar),
+            .clip(RoundedCornerShape(28.dp)).backdropBlur(30.dp).background(c.tabBar),
     ) {
         items.forEachIndexed { i, it ->
             val on = it.tab == selected
