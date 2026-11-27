@@ -34,13 +34,12 @@ private val InkDark = Color(0xFF010102)
 private val InkMuted = Color(0x73010102)
 
 @Composable
-fun IdTab(state: AppState, onScan: () -> Unit, onPhoto: () -> Unit) {
+fun IdTab(state: AppState, onScan: () -> Unit, onPhoto: () -> Unit, onTitle: () -> Unit = {}) {
     val c = LocalColors.current
-    var menu by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             Box(Modifier.fillMaxWidth().height(660.dp)) {
-                SchoolTitle { menu = true }
+                SchoolTitle(onTitle)
                 PT("모바일 학생증", 22f, 86f, 14, c.pageLabel, 500)
 
                 if (!state.registered) {
@@ -75,7 +74,6 @@ fun IdTab(state: AppState, onScan: () -> Unit, onPhoto: () -> Unit) {
                 }
             }
         }
-        SchoolMenu(menu) { menu = false }
     }
 }
 

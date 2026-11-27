@@ -131,7 +131,9 @@ fun DialogOverlay(spec: DialogSpec?, bottomInset: Dp) {
 
 class ToastState {
     var message by mutableStateOf<String?>(null)
-    fun show(msg: String) { message = msg }
+    /** 같은 글이 다시 떠도 애니메이션이 처음부터 다시 시작되도록 호출마다 올라가는 번호 (원본 toast() 는 매번 처음부터 재생) */
+    var tick by mutableStateOf(0)
+    fun show(msg: String) { message = msg; tick++ }
 }
 
 /**
@@ -144,7 +146,7 @@ fun ToastHost(state: ToastState, bottomInset: Dp) {
     val shown = remember { mutableStateOf<String?>(null) }
     val progress = remember { Animatable(0f) }
     val alpha = remember { Animatable(0f) }
-    LaunchedEffect(msg) {
+    LaunchedEffect(state.tick) {
         if (msg == null) return@LaunchedEffect
         shown.value = msg
         alpha.snapTo(1f)
@@ -180,7 +182,7 @@ fun ToastHost(state: ToastState, bottomInset: Dp) {
                     val w = (d + (p.width - d) * grow).toInt().coerceAtLeast(d)
                     layout(w, p.height) { p.placeRelative((w - p.width) / 2, 0) }
                 }
-                .clip(RoundedCornerShape(22.dp)).background(Color(0xB81E2026)),
+                .clip(RoundedCornerShape(22.dp)).backdropBlur(14.dp).background(Color(0xB81E2026)),
             contentAlignment = Alignment.Center,
         ) {
             Text(

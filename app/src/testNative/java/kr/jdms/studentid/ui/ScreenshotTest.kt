@@ -8,6 +8,8 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
@@ -58,7 +60,7 @@ class ScreenshotTest {
         setup(st)
         rule.setContent {
             AppTheme(dark) {
-                AppSurface(st, ToastState(), null, 0.dp, 0.dp, openScan = {}, scanScreen = {})
+                AppSurface(st, ToastState(), null, 0.dp, 0.dp, openScan = {}, scanScreen = {}, backdropEnabled = false)
             }
         }
         rule.waitForIdle()                          // 시계 갱신 루프는 IdTabConfig.liveClock=false 로 꺼 두었으므로 idle 이 된다
@@ -80,50 +82,42 @@ class ScreenshotTest {
         File(dir, "$name.json").writeText(sb.toString())
     }
 
-    // ── 진단: idle 을 막는 요소 찾기 (통과/실패 조합으로 범인을 가린다) ──
-    @Test fun diag_a_plain_text() {
-        rule.setContent { androidx.compose.material3.Text("hello") }
-        rule.waitForIdle()
-    }
-    @Test fun diag_b_theme_only() {
-        rule.setContent { AppTheme(false) { androidx.compose.material3.Text("hello") } }
-        rule.waitForIdle()
-    }
-    @Test fun diag_c_home_tab_only() {
-        val st = state(true)
-        rule.setContent { AppTheme(false) { HomeTab(st, {}, {}, {}) } }
-        rule.waitForIdle()
-    }
-    @Test fun diag_d_pagehost_only() {
-        val st = state(true)
-        rule.setContent { AppTheme(false) { PageHost(st.stack, base = { androidx.compose.material3.Text("base") }, pageBg = androidx.compose.ui.graphics.Color.White, content = {}) } }
-        rule.waitForIdle()
-    }
-    @Test fun diag_e_dialog_only() {
-        rule.setContent { AppTheme(false) { DialogOverlay(null, 0.dp) } }
-        rule.waitForIdle()
-    }
-    @Test fun diag_f_toast_only() {
-        rule.setContent { AppTheme(false) { ToastHost(ToastState(), 0.dp) } }
-        rule.waitForIdle()
-    }
-    @Test fun diag_g_tabbar_only() {
-        rule.setContent { AppTheme(false) { TabBar(Tab.HOME, {}) } }
-        rule.waitForIdle()
+    private fun savePng(name: String) {
+        val bmp = drawActivityToBitmap()
+        val dir = File("build/screenshots").apply { mkdirs() }
+        File(dir, "$name.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 
-    // ── 진단 2: AppSurface 를 구성요소 단위로 쌓아 가며 처음 실패하는 조합을 찾는다 ──
-    private fun idle(content: @androidx.compose.runtime.Composable () -> Unit) { rule.setContent { AppTheme(false) { content() } }; rule.waitForIdle() }
-    @Test fun diag_h_pagehost_with_home() { val st = state(true); idle { PageHost(st.stack, base = { HomeTab(st, {}, {}, {}) }, pageBg = androidx.compose.ui.graphics.Color.White, content = {}) } }
-    @Test fun diag_i_pagehost_with_home_and_tabbar() { val st = state(true); idle { PageHost(st.stack, base = { androidx.compose.foundation.layout.Box { HomeTab(st, {}, {}, {}); TabBar(Tab.HOME, {}) } }, pageBg = androidx.compose.ui.graphics.Color.White, content = {}) } }
-    @Test fun diag_j_image_bg() { idle { androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(kr.jdms.studentid.R.drawable.bg_home), null) } }
-    @Test fun diag_k_backhandler() { idle { androidx.activity.compose.BackHandler(enabled = true) {}; androidx.compose.material3.Text("x") } }
-    @Test fun diag_l_boxwithconstraints() { idle { androidx.compose.foundation.layout.BoxWithConstraints { androidx.compose.material3.Text("${maxWidth}") } } }
-    @Test fun diag_m_surface_no_dialog_toast() {
+    /** 토스트 애니메이션: 가상 시계를 멈추고 원하는 시각(ms)으로 보내 가며 그려서 원본 HTML 의 같은 시각 모습과 비교한다 */
+    @Test fun toast_frames() {
         val st = state(true)
-        idle { val c = LocalColors.current; androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize().background(c.pageBg)) { PageHost(st.stack, base = { HomeTab(st, {}, {}, {}) }, pageBg = c.pageBg, content = {}) } }
+        val toast = ToastState()
+        rule.mainClock.autoAdvance = false
+        rule.setContent { AppTheme(false) { AppSurface(st, toast, null, 0.dp, 0.dp, openScan = {}, scanScreen = {}, backdropEnabled = false) } }
+        rule.runOnUiThread { toast.show("등록된 학생증을 삭제했어요") }
+        rule.mainClock.advanceTimeByFrame()
+        var t = 0
+        for (ms in listOf(0, 100, 200, 300, 450, 620, 1000, 2500)) {
+            if (ms > t) rule.mainClock.advanceTimeBy((ms - t).toLong())
+            t = ms
+            savePng("toast-$ms")
+        }
     }
-    @Test fun diag_n_full_surface_dark_no_image() { val st = state(true); idle { AppSurface(st, ToastState(), null, 0.dp, 0.dp, {}, {}) } }
+
+    /** 학교 선택 메뉴: 제목을 누른 뒤 열리는 중/열린 뒤 */
+    @Test fun school_menu() {
+        val st = state(true)
+        rule.mainClock.autoAdvance = false
+        rule.setContent { AppTheme(false) { AppSurface(st, ToastState(), null, 0.dp, 0.dp, openScan = {}, scanScreen = {}, backdropEnabled = false) } }
+        rule.mainClock.advanceTimeBy(100)
+        rule.onRoot().performTouchInput { click(androidx.compose.ui.geometry.Offset(70f, 34f)) }
+        rule.mainClock.advanceTimeByFrame()
+        var t = 0
+        for (ms in listOf(60, 500)) {
+            rule.mainClock.advanceTimeBy((ms - t).toLong()); t = ms
+            savePng("menu-open-$ms")
+        }
+    }
 
     @Test fun home_light() = shot("home-light", false) { it.tab = Tab.HOME }
     @Test fun home_dark() = shot("home-dark", true) { it.tab = Tab.HOME }

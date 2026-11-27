@@ -64,7 +64,7 @@ fun BoxScope.SchoolTitle(onClick: () -> Unit) {
  * 열릴 때 왼쪽 위에서 0.93 → 1 로 커지며 투명도 0.55 → 1.
  */
 @Composable
-fun SchoolMenu(open: Boolean, onDismiss: () -> Unit) {
+fun SchoolMenu(open: Boolean, top: androidx.compose.ui.unit.Dp, onDismiss: () -> Unit) {
     val c = LocalColors.current
     var shown by remember { mutableStateOf(false) }
     val p = remember { Animatable(0f) }
@@ -73,7 +73,7 @@ fun SchoolMenu(open: Boolean, onDismiss: () -> Unit) {
         else { p.animateTo(0f, tween(150, easing = androidx.compose.animation.core.LinearEasing)); shown = false }
     }
     if (!shown) return
-    Box(Modifier.fillMaxSize().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onDismiss() }) {
+    Box(Modifier.fillMaxSize().padding(top = top).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onDismiss() }) {
         val bg = (if (c.dark) Color(0xFF2A2A2D) else Color(0xFFFCFCFF)).copy(alpha = 0.8f)
         val sub = c.text.copy(alpha = 0.4f)
         Box(
@@ -84,7 +84,7 @@ fun SchoolMenu(open: Boolean, onDismiss: () -> Unit) {
                     transformOrigin = TransformOrigin(0f, 0f)
                 }
                 .cssShadow(26.dp, 20.dp, 8.dp, if (c.dark) Color(0x66000000) else Color(0x1A000000))
-                .clip(RoundedCornerShape(26.dp)).background(bg)
+                .clip(RoundedCornerShape(26.dp)).backdropBlur(9.dp).background(bg)
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { },
         ) {
             // 현재 학교 (선택됨)
@@ -110,13 +110,12 @@ fun SchoolMenu(open: Boolean, onDismiss: () -> Unit) {
 }
 
 @Composable
-fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon: () -> Unit) {
+fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon: () -> Unit, onTitle: () -> Unit = {}) {
     val c = LocalColors.current
-    var menu by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             Box(Modifier.fillMaxWidth().height(660.dp)) {
-                SchoolTitle { menu = true }
+                SchoolTitle(onTitle)
 
                 // '지금' 카드: (10,74) 373x147, 둥근 30
                 PutFull(74f, 147f, modifier = Modifier.glass(c)) {
@@ -172,7 +171,6 @@ fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon:
                 }
             }
         }
-        SchoolMenu(menu) { menu = false }
     }
 }
 

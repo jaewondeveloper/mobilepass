@@ -27,6 +27,11 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.drawscope.drawLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.unit.dp
@@ -183,5 +188,29 @@ fun Modifier.pressScaleObserver(scale: Float): Modifier {
             waitForUpOrCancellation(PointerEventPass.Initial)
             pressed = false
         }
+    }
+}
+
+
+/** 배경을 기록해 둔 레이어. 반투명 + backdrop-filter: blur 인 요소(학교 선택 메뉴, 토스트)가 뒤 화면을 흐리게 비추는 데 쓴다. */
+val LocalBackdrop = androidx.compose.runtime.compositionLocalOf<androidx.compose.ui.graphics.layer.GraphicsLayer?> { null }
+
+/**
+ * CSS backdrop-filter: blur(radius) 와 같은 효과: 이 요소 뒤에 그려진 화면을 가져와 흐리게 그린다.
+ * (안드로이드 12 이상. 그보다 낮으면 반투명 배경만 보인다)
+ */
+@Composable
+fun Modifier.backdropBlur(radius: androidx.compose.ui.unit.Dp): Modifier {
+    val backdrop = LocalBackdrop.current ?: return this
+    if (android.os.Build.VERSION.SDK_INT < 31) return this
+    val layer = androidx.compose.ui.graphics.rememberGraphicsLayer()
+    var origin by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+    return this.onGloballyPositioned { origin = it.positionInRoot() }.drawBehind {
+        val r = radius.toPx()
+        layer.renderEffect = androidx.compose.ui.graphics.BlurEffect(r, r, androidx.compose.ui.graphics.TileMode.Clamp)
+        layer.record(this, layoutDirection, androidx.compose.ui.unit.IntSize(size.width.toInt().coerceAtLeast(1), size.height.toInt().coerceAtLeast(1))) {
+            translate(-origin.x, -origin.y) { drawLayer(backdrop) }
+        }
+        drawLayer(layer)
     }
 }

@@ -33,6 +33,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.drawscope.drawLayer
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -130,21 +132,34 @@ fun AppSurface(
     bottom: androidx.compose.ui.unit.Dp,
     openScan: () -> Unit,
     scanScreen: @Composable () -> Unit,
+    backdropEnabled: Boolean = true,       // 화면 캡처 테스트(소프트웨어 캔버스)에서는 끈다
 ) {
     val c = LocalColors.current
     var showPhoto by remember { mutableStateOf(false) }
+    var schoolMenu by remember { mutableStateOf(false) }
+    // 뒤 화면을 기록해 두는 레이어: 학교 선택 메뉴/토스트의 배경 흐림(backdrop blur)에 쓴다
+    val backdropLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
+    val backdrop = if (backdropEnabled) backdropLayer else null
+    LaunchedEffect(state.tab, state.page) { schoolMenu = false }
 
     // 뒤로가기: 페이지 → 한 단계 닫기, 다른 탭 → 홈, 홈 → 종료(기본 동작)
     BackHandler(enabled = state.page != Page.NONE || state.tab != Tab.HOME) {
         if (state.page != Page.NONE) state.back() else state.tab = Tab.HOME
     }
 
-    androidx.compose.runtime.CompositionLocalProvider(LocalBottomInset provides bottom) {
+    androidx.compose.runtime.CompositionLocalProvider(LocalBottomInset provides bottom, LocalBackdrop provides backdrop) {
     Box(Modifier.fillMaxSize().background(c.pageBg)) {
         PageHost(
             stack = state.stack, pageBg = c.pageBg,
             base = {
-                Box(Modifier.fillMaxSize().background(c.pageBg)) {
+                Box(
+                    Modifier.fillMaxSize().background(c.pageBg).let { m ->
+                        if (backdrop == null) m else m.drawWithContent {
+                            backdrop.record(this, layoutDirection, androidx.compose.ui.unit.IntSize(size.width.toInt().coerceAtLeast(1), size.height.toInt().coerceAtLeast(1))) { this@drawWithContent.drawContent() }
+                            drawLayer(backdrop)
+                        }
+                    },
+                ) {
                     // 라이트 홈/학생증 탭은 템플릿의 그라데이션 배경 (다크는 평면)
                     // 다크모드는 같은 그라데이션을 어둡게 덮어 어두운 그라데이션으로
                     if (state.tab != Tab.MENU) {
@@ -153,8 +168,8 @@ fun AppSurface(
                     }
                     Box(Modifier.fillMaxSize().padding(top = top)) {
                         when (state.tab) {
-                            Tab.HOME -> HomeTab(state, onScan = openScan, onOpenCard = { state.tab = Tab.CARD }, onSoon = { toast.show("데모에서는 준비 중이에요") })
-                            Tab.CARD -> IdTab(state, onScan = openScan, onPhoto = { showPhoto = true })
+                            Tab.HOME -> HomeTab(state, onScan = openScan, onOpenCard = { state.tab = Tab.CARD }, onSoon = { toast.show("데모에서는 준비 중이에요") }, onTitle = { schoolMenu = true })
+                            Tab.CARD -> IdTab(state, onScan = openScan, onPhoto = { showPhoto = true }, onTitle = { schoolMenu = true })
                             Tab.MENU -> MenuTab(onReRegister = openScan, onTips = { state.open(Page.TIPS) }, onInfo = { state.open(Page.INFO) }, onSettings = { state.open(Page.SETTINGS) })
                         }
                     }
@@ -189,6 +204,7 @@ fun AppSurface(
                 onCancel = { showPhoto = false },
             )
         } else null
+        SchoolMenu(schoolMenu && state.page == Page.NONE && state.tab != Tab.MENU, top) { schoolMenu = false }
         DialogOverlay(scanDialog ?: zoom, bottom)
         ToastHost(toast, bottom)
     }

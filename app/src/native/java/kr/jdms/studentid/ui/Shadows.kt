@@ -26,15 +26,15 @@ private fun androidBlurRadius(cssBlurPx: Float): Float = if (cssBlurPx <= 0f) 0f
  */
 fun Modifier.cssShadow(radius: Dp, blur: Dp, dy: Dp, color: Color, dx: Dp = 0.dp): Modifier = this.drawBehind {
     val r = radius.toPx()
-    // 요소 자신을 가리는 구멍은 1px 더 크게: 안티앨리어싱 때문에 그림자용 검정 본체가 가장자리에 얇은 선으로 비치는 것을 막는다
-    val e = 1.dp.toPx()
-    val shape = Path().apply { addRoundRect(RoundRect(-e, -e, size.width + e, size.height + e, CornerRadius(r + e))) }
+    val shape = Path().apply { addRoundRect(RoundRect(0f, 0f, size.width, size.height, CornerRadius(r))) }
     clipPath(shape, ClipOp.Difference) {
         drawIntoCanvas { canvas ->
+            // 검은 본체를 그리지 않고 '번진 그림자 색'만 그린다: 가장자리 안티앨리어싱 때문에 얇은 선/틈이 생기지 않는다
             val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
-            p.color = android.graphics.Color.BLACK
-            p.setShadowLayer(androidBlurRadius(blur.toPx()), dx.toPx(), dy.toPx(), color.toArgb())
-            canvas.nativeCanvas.drawRoundRect(0f, 0f, size.width, size.height, r, r, p)
+            p.color = color.toArgb()
+            val br = androidBlurRadius(blur.toPx())
+            if (br > 0f) p.maskFilter = android.graphics.BlurMaskFilter(br, android.graphics.BlurMaskFilter.Blur.NORMAL)
+            canvas.nativeCanvas.drawRoundRect(dx.toPx(), dy.toPx(), dx.toPx() + size.width, dy.toPx() + size.height, r, r, p)
         }
     }
 }
