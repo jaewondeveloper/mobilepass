@@ -20,10 +20,12 @@ fun Code128(value: String, height: Dp, modifier: Modifier = Modifier, color: Col
     val matrix = remember(value) { runCatching { Code128Writer().encode(value, BarcodeFormat.CODE_128, 0, 1) }.getOrNull() }
     Canvas(modifier.fillMaxWidth().height(height)) {
         val m = matrix ?: return@Canvas
-        // ZXing 행렬은 양쪽에 조용한 구역(10칸)이 붙어 있다: 막대 부분만 쓰고, 원본(JsBarcode width=2)처럼 한 칸을 2dp 로 그린다
-        val quiet = 10
-        val first = quiet
-        val modules = m.width - quiet
+        // ZXing 행렬은 양쪽에 조용한 구역이 붙어 있다: 첫 검은 칸~마지막 검은 칸(코드 본체)만 쓰고, 원본(JsBarcode width=2)처럼 한 칸을 2dp 로 그린다
+        var first = 0
+        while (first < m.width && !m.get(first, 0)) first++
+        var last = m.width - 1
+        while (last > first && !m.get(last, 0)) last--
+        val modules = last + 1
         val bars = modules - first
         val unit = kotlin.math.min(2.dp.toPx(), kotlin.math.floor(size.width / bars)).coerceAtLeast(1f)
         val left = (size.width - unit * bars) / 2f - unit * first
