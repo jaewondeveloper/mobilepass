@@ -205,7 +205,10 @@ SCHOOL_JS = r"""
         put(mkCard(null, [{ id: 'sid-sch-ref', title: '이번 주 급식', desc: '나이스 교육정보 · 눌러서 새로고침', fn: function () { load(true); } }]));
       }
       var wait = mkCard(null, [{ id: 'sid-sch-wait', title: '불러오는 중이에요', desc: '잠시만 기다려 주세요' }]); put(wait);
-      schoolCall(kind === 'tt' ? 'loadTimetable' : 'loadMeals', force, function (r) {
+      var t0 = Date.now();
+      function later(fn) { setTimeout(fn, Math.max(0, 480 - (Date.now() - t0))); }        // 페이지가 열리는 동안(450ms)에는 그리지 않는다 (프레임 드랍 방지)
+      function stagger(fns) { var i = 0; (function step() { if (i < fns.length) { fns[i++](); requestAnimationFrame(step); } })(); }   // 카드는 프레임마다 하나씩
+      schoolCall(kind === 'tt' ? 'loadTimetable' : 'loadMeals', force, function (r) { later(function () {
         if (wait.parentNode) wait.parentNode.removeChild(wait);
         if (!r || !r.ok) {
           put(mkCard(null, [{ id: 'sid-sch-err', title: '불러오지 못했어요', desc: ((r && r.error) || '인터넷 연결을 확인해 주세요') + '\n눌러서 다시 시도해요', fn: function () { load(true); } }]));
@@ -215,21 +218,21 @@ SCHOOL_JS = r"""
         if (kind === 'tt') {
           days = days.filter(function (d) { return d.lessons.length; });
           if (!days.length) { put(mkCard(null, [{ id: 'sid-sch-none', title: '이번 주 시간표가 아직 없어요', desc: '학교에서 시간표를 올리면 보여요' }])); return; }
-          days.forEach(function (d, di) {
+          stagger(days.map(function (d, di) { return function () {
             put(mkCard(dayLabel(d.ymd), d.lessons.map(function (l, li) {
               return { id: 'sid-tt-' + di + '-' + li, title: l.period + '교시  ' + l.subject, desc: l.teacher || undefined };
             })));
-          });
+          }; }));
         } else {
           if (!days.length) { put(mkCard(null, [{ id: 'sid-sch-none', title: '이번 주 급식 정보가 없어요', desc: '학교에서 식단을 올리면 보여요' }])); return; }
-          days.forEach(function (d, di) {
+          stagger(days.map(function (d, di) { return function () {
             put(mkCard(dayLabel(d.ymd), d.meals.map(function (m, mi) {
               var al = m.allergies && m.allergies.length ? '\n알레르기: ' + m.allergies.map(function (n) { return ALLERGY[n] || n; }).join(', ') : '';
               return { id: 'sid-ml-' + di + '-' + mi, title: m.type + (m.calories ? ' · ' + m.calories : ''), desc: m.dishes.join('\n') + al };
             })));
-          });
+          }; }));
         }
-      });
+      }); });
     }
     load(false);
   }
