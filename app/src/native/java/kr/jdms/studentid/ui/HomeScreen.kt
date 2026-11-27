@@ -137,7 +137,7 @@ fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon:
     val strip = rememberTimetableStrip(state)
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().scrollEdgeFade(sc).verticalScroll(sc)) {
-            Box(Modifier.fillMaxWidth().height(if (strip != null) 760.dp else 660.dp)) {
+            Box(Modifier.fillMaxWidth().height(if (strip != null) (481f + 33f + (strip.second.chunked(4).size) * 48f + 77f + 150f).dp else 660.dp)) {
 
                 // '지금' 카드: (10,74) 373x147, 둥근 30
                 PutFull(74f, 147f, modifier = Modifier.glass(c)) {
@@ -179,24 +179,32 @@ fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon:
                     }
                 }
 
-                // 시간표 줄: 학교생활 카드 바로 아래. 과목 이름을 둥근 카드 하나씩에 넣어 가로로 쭉 (옆으로 밀어서 더 보기)
+                // 시간표 카드: 학교생활 카드 바로 아래. 큰 카드 안에 과목 이름이 둥근 칸 하나씩 (대시보드 칸과 같은 모양, 4열)
                 if (strip != null) {
-                    PT(strip.first, 20f, 490f, 13, c.text, 600)
-                    Row(
-                        Modifier.align(Alignment.TopStart).offset(y = 509.dp).fillMaxWidth()
-                            .horizontalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        strip.second.forEach { name ->
-                            Box(Modifier.height(52.dp).clip(SmoothRoundedShape(22.dp)).background(c.card).padding(horizontal = 18.dp), contentAlignment = Alignment.Center) {
-                                T(name, 15, c.text, 600, maxLines = 1, softWrap = false, single = true)
+                    val rows = strip.second.chunked(4)
+                    val h = 33f + rows.size * 48f + (rows.size - 1) * 4f + 8f
+                    PutFull(481f, h, modifier = Modifier.clip(SmoothRoundedShape(28.dp)).background(c.card)) {
+                        PT(strip.first, 16f, 9f, 13, c.textSub, 600)
+                        Column(
+                            Modifier.align(Alignment.TopStart).offset(y = 33.dp).fillMaxWidth().padding(horizontal = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            rows.forEach { row ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    row.forEach { name ->
+                                        Box(Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(22.dp)).background(c.tile), contentAlignment = Alignment.Center) {
+                                            T(name, 15, c.text, 600, maxLines = 1, softWrap = false, single = true)
+                                        }
+                                    }
+                                    repeat(4 - row.size) { Box(Modifier.weight(1f)) }
+                                }
                             }
                         }
                     }
                 }
 
                 // 학생증 한 줄: (10,481) 373x77, 둥근 28. 누르면 0.96 으로 줄고 글자 묶음은 0.979 더 줄어든다.
-                PutFull(if (strip != null) 571f else 481f, 77f) {
+                PutFull(if (strip != null) 481f + (33f + (strip.second.chunked(4).size) * 48f + (strip.second.chunked(4).size - 1) * 4f + 8f) + 10f else 481f, 77f) {
                     PressBox(Modifier.fillMaxSize(), shape = CardShape, scale = 0.96f, bg = c.card, onClick = onOpenCard) {
                         val ts by animateFloatAsState(if (LocalPressed.current) 0.979f else 1f, tween(Motion.RECOIL_MS, easing = Motion.Recoil), label = "cardText")
                         Box(Modifier.fillMaxSize().graphicsLayer { scaleX = ts; scaleY = ts; transformOrigin = TransformOrigin(0.5f, 0.5f) }) {

@@ -94,7 +94,7 @@ STRIP_JS = r"""
     return diff === 0 ? '오늘 시간표' : diff === 1 ? '내일 시간표' : DOWK[target.getDay()] + '요일 시간표';
   }
   function ymdOf(d) { var m = d.getMonth() + 1, dd = d.getDate(); return '' + d.getFullYear() + (m < 10 ? '0' : '') + m + (dd < 10 ? '0' : '') + dd; }
-  var TT_CSS = '#sid-tt-strip{display:block;} .sid-tt-label{font-size:13px;font-weight:600;line-height:16px;padding:10px 10px 8px 10px;color:#010102;} .sid-tt-row{display:flex;gap:6px;overflow-x:auto;padding:0 0 2px;scrollbar-width:none;} .sid-tt-row::-webkit-scrollbar{display:none;} .sid-tt-chip{flex:none;box-sizing:border-box;height:52px;padding:0 18px;border-radius:22px;display:flex;align-items:center;background:#FCFCFF;color:#010102;font-size:15px;font-weight:600;white-space:nowrap;} #sid-tt-strip[data-dark] .sid-tt-label{color:#FAFAFF;} #sid-tt-strip[data-dark] .sid-tt-chip{background:#17171A;color:#FAFAFF;}';
+  var TT_CSS = '#sid-tt-strip{display:block;} .sid-tt-card{box-sizing:border-box;background:#FCFCFF;border-radius:28px;padding:9px 8px 8px;} .sid-tt-label{font-size:13px;font-weight:600;line-height:16px;padding:0 8px 8px;color:rgba(1,1,2,.6);} .sid-tt-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;} .sid-tt-chip{box-sizing:border-box;height:48px;padding:0 6px;border-radius:22px;display:flex;align-items:center;justify-content:center;background:rgba(23,23,26,.04);color:#010102;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;} #sid-tt-strip[data-dark] .sid-tt-card{background:#17171A;} #sid-tt-strip[data-dark] .sid-tt-label{color:rgba(252,252,255,.6);} #sid-tt-strip[data-dark] .sid-tt-chip{background:rgba(252,252,255,.05);color:#FAFAFF;}';
   function ttRemove(strip) {
     if (strip) strip.remove();
     var m = document.querySelectorAll('[data-sid-moved]');
@@ -134,10 +134,11 @@ STRIP_JS = r"""
     var after = strip.nextElementSibling;                       // 학생증 카드는 한 줄 아래로
     if (after && !after.hasAttribute('data-sid-moved')) { after.style.gridRow = '4'; after.setAttribute('data-sid-moved', '1'); }
     var root = strip.getRootNode();                              // 카드 묶음이 그림자 영역 안이면 거기에도 스타일을 넣는다
-    if (root && root.host && !root.getElementById('sid-tt-style')) { var st = document.createElement('style'); st.id = 'sid-tt-style'; st.textContent = TT_CSS; root.appendChild(st); }
-    strip.innerHTML = '<div class="sid-tt-label"></div><div class="sid-tt-row"></div>';
-    strip.firstChild.textContent = TTS.label;
-    var row = strip.lastChild;
+    var styleHost = root && root.host ? root : document.head;   // 그림자 영역이면 그 안에, 아니면 문서 머리에
+    if (!styleHost.querySelector('#sid-tt-style')) { var st = document.createElement('style'); st.id = 'sid-tt-style'; st.textContent = TT_CSS; styleHost.appendChild(st); }
+    strip.innerHTML = '<div class="sid-tt-card"><div class="sid-tt-label"></div><div class="sid-tt-row"></div></div>';
+    strip.querySelector('.sid-tt-label').textContent = TTS.label;
+    var row = strip.querySelector('.sid-tt-row');
     TTS.subjects.forEach(function (n) {
       var c = document.createElement('div'); c.className = 'sid-tt-chip';
       var t = document.createElement('span'); t.textContent = n; c.appendChild(t); row.appendChild(c);
@@ -280,7 +281,7 @@ sub("      if (node.matches('.ux-app-page-information__license')) { act = 'lic';
 sub("    else if (act === 'tips') openTips();",
     "    else if (act === 'tips') openTips();\n    else if (act === 'priv') openNative('SidPrivacyPage');")
 sub(".sid-pg .sid-danger-title { color: #e5392d !important; }",
-    ".sid-pg .sid-danger-title { color: #e5392d !important; } .sid-pg wx-list-item span { white-space: pre-line !important; } .sid-sch .sid-card-wrap { margin-bottom: 18px; } #sid-tt-strip { display: block !important; grid-column: 1 / -1; margin: 0; min-width: 0; } .sid-tt-label { font-size: 13px; font-weight: 600; line-height: 16px; padding: 0 10px 8px 10px; margin-top: 2px; color: #010102; } .sid-tt-row { display: flex; gap: 6px; overflow-x: auto; padding: 0 0 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; } .sid-tt-row::-webkit-scrollbar { display: none; } .sid-tt-chip { flex: none; box-sizing: border-box; height: 52px; padding: 0 18px; border-radius: 22px; display: flex; align-items: center; background: #FCFCFF; color: #010102; font-size: 15px; font-weight: 600; white-space: nowrap; } html[data-color-scheme=\"dark\"] .sid-tt-label { color: #FAFAFF; } html[data-color-scheme=\"dark\"] .sid-tt-chip { background: #17171A; color: #FAFAFF; }")
+    ".sid-pg .sid-danger-title { color: #e5392d !important; } .sid-pg wx-list-item span { white-space: pre-line !important; } .sid-sch .sid-card-wrap { margin-bottom: 18px; }")
 sub(".ux-app-page-information__license { display: flex; justify-content: center; }",
     ".ux-app-page-information__license { display: flex; justify-content: center; } .ux-app-page-information__bottom-wrapper:has(.sid-privacy-link) { flex-direction: column !important; align-items: center !important; } .sid-privacy-link { margin-bottom: 12px; }")
 sub("      if (node.matches('.sid-privacy-link')) { act = 'priv'; break; }", "      if (node.matches('.sid-privacy-link')) { act = 'priv'; break; }")
