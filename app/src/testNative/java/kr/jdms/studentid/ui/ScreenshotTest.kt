@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
@@ -130,5 +131,16 @@ class ScreenshotTest {
     @Test fun info_light() = shot("info-light", false) { it.open(Page.INFO) }
     @Test fun privacy_light() = shot("privacy-light", false) { it.open(Page.PRIVACY) }
     @Test fun licenses_light() = shot("licenses-light", false) { it.open(Page.LICENSES) }
+    /** 긴 페이지를 위로 밀었을 때 뒤로가기 버튼 뒤에 유리 배경이 생기는지 */
+    @Test fun licenses_scrolled() {
+        val st = state(true)
+        st.open(Page.LICENSES)
+        rule.setContent { AppTheme(false) { AppSurface(st, ToastState(), null, 0.dp, 0.dp, openScan = {}, scanScreen = {}, backdropEnabled = false) } }
+        rule.waitForIdle()
+        rule.onRoot().performTouchInput { swipeUp(startY = 700f, endY = 200f) }
+        rule.waitForIdle()
+        savePng("licenses-scrolled")
+    }
+
     @Test fun settings_dark() = shot("settings-dark", true) { it.open(Page.SETTINGS) }
 }
