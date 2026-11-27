@@ -90,15 +90,19 @@ class SplashView(context: Context, private val holdUntil: () -> Boolean) : View(
         // 빛 반사: 로고가 있는 곳(SRC_ATOP)에만 비스듬한 밝은 띠가 지나간다
         val p = ((now - SWEEP_AT_MS) / SWEEP_MS).coerceIn(0f, 1f)
         if (p > 0f && p < 1f) {
-            val band = dst.width() * 0.55f
+            // 띠를 SHEEN_ANGLE 도 기울여 왼쪽 위에서 오른쪽 아래로 대각선으로 훑는다.
+            // 기울인 축 위에서 로고(정사각형)가 차지하는 길이만큼을 덮도록 이동 범위를 잡는다.
+            val rad = Math.toRadians(SHEEN_ANGLE.toDouble())
+            val reach = dst.width() * (Math.cos(rad) + Math.sin(rad)).toFloat()
+            val band = dst.width() * 0.5f
             val e = easeInOutCubic(p)
-            val center = dst.left - band + (dst.width() + band * 2f) * e
+            val center = cx - (reach + band) / 2f + (reach + band) * e
             val shader = LinearGradient(
-                center - band / 2f, 0f, center + band / 2f, 0f,
-                intArrayOf(0x00FFFFFF, 0x66FFFFFF, 0xCCFFFFFF.toInt(), 0x66FFFFFF, 0x00FFFFFF),
+                center - band / 2f, cy, center + band / 2f, cy,
+                intArrayOf(0x00FFFFFF, 0x66FFFFFF, 0xDDFFFFFF.toInt(), 0x66FFFFFF, 0x00FFFFFF),
                 floatArrayOf(0f, 0.3f, 0.5f, 0.7f, 1f), Shader.TileMode.CLAMP,
             )
-            matrix.setRotate(18f, cx, cy)
+            matrix.setRotate(SHEEN_ANGLE, cx, cy)
             shader.setLocalMatrix(matrix)
             sheenPaint.shader = shader
             canvas.drawRect(dst, sheenPaint)
@@ -114,6 +118,7 @@ class SplashView(context: Context, private val holdUntil: () -> Boolean) : View(
         private const val MIN_MS = 1150L
         private const val MAX_MS = 6000L
         private const val FADE_MS = 240f
+        private const val SHEEN_ANGLE = 35f          // 빛 반사 띠의 기울기(도): 왼쪽 위 → 오른쪽 아래 대각선
 
         /** 화면 맨 위에 시작 화면을 얹는다. holdUntil 이 true 가 될 때(그리고 최소 시간이 지난 뒤) 사라진다. */
         fun show(activity: Activity, holdUntil: () -> Boolean = { true }) {
