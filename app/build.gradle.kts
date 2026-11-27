@@ -32,6 +32,12 @@ android {
         compose = true
     }
 
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true      // Robolectric 이 앱 리소스(이미지)를 쓰도록
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -86,4 +92,10 @@ dependencies {
     "nativeImplementation"("com.google.zxing:core:3.5.3")             // 바코드 그리기 (Code128)
 
     testImplementation("junit:junit:4.13.2")
+
+    // native 화면을 JVM 에서 PNG 로 그려 보는 캡처 테스트 (원본 HTML 과 나란히 비교하기 위함)
+    "testNativeImplementation"("org.robolectric:robolectric:4.14.1")
+    "testNativeImplementation"(composeBom)
+    "testNativeImplementation"("androidx.compose.ui:ui-test-junit4")
+    "nativeDebugImplementation"("androidx.compose.ui:ui-test-manifest")
 }

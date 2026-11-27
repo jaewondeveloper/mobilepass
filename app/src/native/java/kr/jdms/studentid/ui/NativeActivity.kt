@@ -96,10 +96,8 @@ class NativeActivity : AppCompatActivity() {
 
     @Composable
     private fun Root() {
-        val c = LocalColors.current
         val top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
         val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-        var showPhoto by remember { mutableStateOf(false) }
 
         // 학생증 탭에서는 화면 밝기를 최대로 (설정 '학생증 화면 밝기 높이기')
         LaunchedEffect(state.tab, state.page, state.brightBoost) {
@@ -107,61 +105,84 @@ class NativeActivity : AppCompatActivity() {
             window.attributes = window.attributes.also { it.screenBrightness = if (boost) 1f else WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE }
         }
 
-        // 뒤로가기: 페이지 → 닫기, 다른 탭 → 홈, 홈 → 종료(기본 동작)
-        BackHandler(enabled = state.page != Page.NONE || state.tab != Tab.HOME) {
-            when (state.page) {
-                Page.NONE -> state.tab = Tab.HOME
-                Page.LICENSES -> state.page = Page.INFO
-                else -> state.page = Page.NONE
-            }
-        }
-
-        Box(Modifier.fillMaxSize().background(c.pageBg)) {
-            // 라이트 홈/학생증 탭은 템플릿의 그라데이션 배경 (다크는 평면)
-            if (!c.dark && state.page == Page.NONE && state.tab != Tab.MENU) {
-                Image(painterResource(if (state.tab == Tab.HOME) R.drawable.bg_home else R.drawable.bg_devices), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-            }
-
-            Box(Modifier.fillMaxSize().padding(top = top)) {
-                when (state.page) {
-                    Page.NONE -> when (state.tab) {
-                        Tab.HOME -> HomeTab(state, onScan = ::openScan, onOpenCard = { state.tab = Tab.CARD }, onSoon = { toast.show("데모에서는 준비 중이에요") })
-                        Tab.CARD -> IdTab(state, onScan = ::openScan, onPhoto = { showPhoto = true })
-                        Tab.MENU -> MenuTab(onReRegister = ::openScan, onTips = { state.page = Page.TIPS }, onInfo = { state.page = Page.INFO }, onSettings = { state.page = Page.SETTINGS })
-                    }
-                    Page.SETTINGS -> SettingsPage(state, { state.page = Page.NONE }, onReRegister = ::openScan, onUnregister = {
-                        if (state.registered) { state.unregister(); toast.show("등록된 학생증을 삭제했어요") } else toast.show("등록된 학생증이 없어요")
-                    })
-                    Page.TIPS -> TipsPage { state.page = Page.NONE }
-                    Page.INFO -> InfoPage({ state.page = Page.NONE }, { state.page = Page.LICENSES })
-                    Page.LICENSES -> LicensesPage { state.page = Page.INFO }
-                    Page.SCAN -> ScanScreen(scan) { state.page = Page.NONE }
-                }
-            }
-
-            if (state.page == Page.NONE) {
-                TabBar(state.tab, { state.tab = it }, Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp + bottom))
-            }
-
-            val zoom = if (showPhoto && state.photo != null) {
-                DialogSpec(
-                    title = state.name ?: "프로필 사진",
-                    content = {
-                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            Image(state.photo!!, "프로필 사진", Modifier.size(280.dp, 373.dp).clip(RoundedCornerShape(24.dp)).background(c.tile), contentScale = ContentScale.Crop)
-                        }
-                    },
-                    actions = listOf(DialogAction("닫기") { showPhoto = false }),
-                    onCancel = { showPhoto = false },
-                )
-            } else null
-            DialogOverlay(scan.dialog ?: zoom, bottom)
-            ToastHost(toast, bottom)
-        }
+        AppSurface(
+            state = state, toast = toast, scanDialog = scan.dialog, top = top, bottom = bottom,
+            openScan = ::openScan,
+            scanScreen = { ScanScreen(scan) { state.page = Page.NONE } },
+        )
     }
 
     private fun openScan() {
         scan.begin()
         state.page = Page.SCAN
+    }
+}
+
+/**
+ * 앱 화면 본체. 액티비티 없이도 그릴 수 있게 분리해서, 화면 캡처 테스트가 실제 앱과 똑같은 구성을 그린다.
+ */
+@Composable
+fun AppSurface(
+    state: AppState,
+    toast: ToastState,
+    scanDialog: DialogSpec?,
+    top: androidx.compose.ui.unit.Dp,
+    bottom: androidx.compose.ui.unit.Dp,
+    openScan: () -> Unit,
+    scanScreen: @Composable () -> Unit,
+) {
+    val c = LocalColors.current
+    var showPhoto by remember { mutableStateOf(false) }
+
+    // 뒤로가기: 페이지 → 닫기, 다른 탭 → 홈, 홈 → 종료(기본 동작)
+    BackHandler(enabled = state.page != Page.NONE || state.tab != Tab.HOME) {
+        when (state.page) {
+            Page.NONE -> state.tab = Tab.HOME
+            Page.LICENSES -> state.page = Page.INFO
+            else -> state.page = Page.NONE
+        }
+    }
+
+    Box(Modifier.fillMaxSize().background(c.pageBg)) {
+        // 라이트 홈/학생증 탭은 템플릿의 그라데이션 배경 (다크는 평면)
+        if (!c.dark && state.page == Page.NONE && state.tab != Tab.MENU) {
+            Image(painterResource(if (state.tab == Tab.HOME) R.drawable.bg_home else R.drawable.bg_devices), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        }
+
+        Box(Modifier.fillMaxSize().padding(top = top)) {
+            when (state.page) {
+                Page.NONE -> when (state.tab) {
+                    Tab.HOME -> HomeTab(state, onScan = openScan, onOpenCard = { state.tab = Tab.CARD }, onSoon = { toast.show("데모에서는 준비 중이에요") })
+                    Tab.CARD -> IdTab(state, onScan = openScan, onPhoto = { showPhoto = true })
+                    Tab.MENU -> MenuTab(onReRegister = openScan, onTips = { state.page = Page.TIPS }, onInfo = { state.page = Page.INFO }, onSettings = { state.page = Page.SETTINGS })
+                }
+                Page.SETTINGS -> SettingsPage(state, { state.page = Page.NONE }, onReRegister = openScan, onUnregister = {
+                    if (state.registered) { state.unregister(); toast.show("등록된 학생증을 삭제했어요") } else toast.show("등록된 학생증이 없어요")
+                })
+                Page.TIPS -> TipsPage { state.page = Page.NONE }
+                Page.INFO -> InfoPage({ state.page = Page.NONE }, { state.page = Page.LICENSES })
+                Page.LICENSES -> LicensesPage { state.page = Page.INFO }
+                Page.SCAN -> scanScreen()
+            }
+        }
+
+        if (state.page == Page.NONE) {
+            TabBar(state.tab, { state.tab = it }, Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp + bottom))
+        }
+
+        val zoom = if (showPhoto && state.photo != null) {
+            DialogSpec(
+                title = state.name ?: "프로필 사진",
+                content = {
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Image(state.photo!!, "프로필 사진", Modifier.size(280.dp, 373.dp).clip(RoundedCornerShape(24.dp)).background(c.tile), contentScale = ContentScale.Crop)
+                    }
+                },
+                actions = listOf(DialogAction("닫기") { showPhoto = false }),
+                onCancel = { showPhoto = false },
+            )
+        } else null
+        DialogOverlay(scanDialog ?: zoom, bottom)
+        ToastHost(toast, bottom)
     }
 }

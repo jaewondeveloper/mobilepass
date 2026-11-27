@@ -21,6 +21,14 @@ jobs:
       - name: Unit tests
         run: ./gradlew --no-daemon testWebDebugUnitTest testNativeDebugUnitTest
 
+      - name: Upload native screenshots (원본 HTML 과 비교용)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-screenshots
+          path: app/build/screenshots/*.png
+          if-no-files-found: ignore
+
       - name: Build debug APKs (web + native)
         run: ./gradlew --no-daemon assembleDebug
 
