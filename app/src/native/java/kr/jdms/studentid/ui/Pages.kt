@@ -69,7 +69,7 @@ fun InfoPage(onBack: () -> Unit, onLicenses: () -> Unit, onPrivacy: () -> Unit =
         PT("버전 1.0.0.0.23", 196.5f, 166.5f, 13, if (c.dark) c.textMuted else Color(0xFF909090), 400, a = A.C)
         PT("최신버전입니다.", 196.5f, 184f, 13, c.textSub, 400, a = A.C)
         // 버튼 둘: 오픈소스 라이선스(아래에서 24), 그 위에 개인정보처리방침(12 간격)
-        Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp + 52.dp + 12.dp + bottom).width(200.dp).height(52.dp)) {
+        Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp + 52.dp + 22.dp + bottom).width(200.dp).height(52.dp)) {
             PillButton("개인정보처리방침", onClick = onPrivacy, modifier = Modifier.fillMaxSize())
         }
         Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp + bottom).width(200.dp).height(52.dp)) {

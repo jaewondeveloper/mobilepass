@@ -127,5 +127,8 @@ class ScreenshotTest {
     @Test fun menu_light() = shot("menu-light", false) { it.tab = Tab.MENU }
     @Test fun menu_dark() = shot("menu-dark", true) { it.tab = Tab.MENU }
     @Test fun settings_light() = shot("settings-light", false) { it.open(Page.SETTINGS) }
+    @Test fun info_light() = shot("info-light", false) { it.open(Page.INFO) }
+    @Test fun privacy_light() = shot("privacy-light", false) { it.open(Page.PRIVACY) }
+    @Test fun licenses_light() = shot("licenses-light", false) { it.open(Page.LICENSES) }
     @Test fun settings_dark() = shot("settings-dark", true) { it.open(Page.SETTINGS) }
 }

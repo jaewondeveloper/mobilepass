@@ -74,13 +74,51 @@ sub("    libsStarted = true;\n    Promise.all([",
 sub("  function patchAll() {\n    if (document.hidden) return;\n    if (scanOpen()) return;",
     "  function patchAll() {\n    if (document.hidden) return;\n    if (scanOpen()) return;\n    if (window.SidNative && SCAN.frame) return;")
 
-# 오픈소스 라이선스 목록을 이 앱이 실제로 쓰는 것으로
-sub_re = re.compile(r"var web = \[.*?\];\n")
-assert len(sub_re.findall(html)) == 1, "web 라이선스 목록을 찾지 못함"
-html = sub_re.sub("var web = [['Lit', 'BSD-3-Clause License'], ['Swiper', 'MIT License'], ['lottie-web', 'MIT License'], ['JsBarcode', 'MIT License'], ['Noto Sans KR', 'SIL Open Font License 1.1']];\n", html)
-and_re = re.compile(r"var and = \[.*?\];\n")
-assert len(and_re.findall(html)) == 1, "android 라이선스 목록을 찾지 못함"
-html = and_re.sub("var and = [['AndroidX (AppCompat, Core, Activity, WebKit)', 'Apache License 2.0'], ['AndroidX CameraX', 'Apache License 2.0'], ['Google ML Kit (Barcode Scanning, Text Recognition)', 'ML Kit Terms of Service'], ['Kotlin Standard Library', 'Apache License 2.0']];\n", html)
+# 오픈소스 라이선스 / 개인정보처리방침: 문구는 tools/legal.py (네이티브 앱과 공용)
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import json
+import legal as L
+
+def _lic_items(libs):
+    return [[n, f"{lic} · {cr} · {use}"] for (n, lic, cr, use) in libs]
+
+web_libs = _lic_items(L.LIBS_WEB)
+and_libs = _lic_items([(("AndroidX (AppCompat, Core, Activity)",) + x[1:]) if x[0].startswith("Jetpack Compose") else x for x in L.LIBS] + [("AndroidX WebKit, Chromium WebView", "Apache License 2.0 / BSD-3-Clause License", "Copyright © The Android Open Source Project, The Chromium Authors", "웹 화면 표시")])
+notices = [[L.APACHE_TITLE, L.APACHE], [L.MIT_TITLE, L.MIT], [L.MLKIT_TITLE, L.MLKIT]]
+privacy = [[h, body] for (h, body) in L.PRIVACY]
+
+lic_re = re.compile(r"        SidLicensePage: make\('오픈소스 라이선스', function \(b\) \{.*?\n        \}\),\n        SidScanPage:", re.S)
+assert len(lic_re.findall(html)) == 1, "라이선스 페이지 정의를 찾지 못함"
+LIC_JS = (
+    "        SidLicensePage: make('오픈소스 라이선스', function (b) {\n"
+    "          var web = " + json.dumps(web_libs, ensure_ascii=False) + ";\n"
+    "          var and = " + json.dumps(and_libs, ensure_ascii=False) + ";\n"
+    "          var notes = " + json.dumps(notices, ensure_ascii=False) + ";\n"
+    "          function items(list, p) { return list.map(function (x, i) { return { id: 'sid-l-' + p + i, title: x[0], desc: x[1] }; }); }\n"
+    "          b.appendChild(mkCard('Web technologies', items(web, 'w')));\n"
+    "          b.appendChild(mkCard('Android technologies', items(and, 'a')));\n"
+    "          b.appendChild(mkCard('라이선스 고지', items(notes, 'n')));\n"
+    "        }),\n"
+    "        SidPrivacyPage: make(" + json.dumps(L.PRIVACY_TITLE, ensure_ascii=False) + ", function (b) {\n"
+    "          var intro = document.createElement('div'); intro.className = 'sid-card-label'; intro.style.cssText = 'font-weight:400;font-size:14px;line-height:20px;padding:0 18px;white-space:normal'; intro.textContent = " + json.dumps(L.PRIVACY_INTRO, ensure_ascii=False) + "; b.appendChild(intro);\n"
+    "          var pv = " + json.dumps(privacy, ensure_ascii=False) + ";\n"
+    "          b.appendChild(mkCard(null, pv.map(function (x, i) { return { id: 'sid-p-' + i, title: x[0], desc: x[1] }; })));\n"
+    "        }),\n"
+    "        SidScanPage:"
+)
+html = lic_re.sub(lambda m: LIC_JS, html)
+
+# 정보 페이지: 오픈소스 라이선스 버튼 위에 개인정보처리방침 버튼
+sub("    var nm = root.querySelector('.ux-app-page-information__title__name');",
+    "    try { var gw = root.closest('px-window-glass') || document; var lw = gw.querySelector('.ux-app-page-information__license'); if (lw && lw.parentNode && !lw.parentNode.querySelector('.sid-privacy-link')) { var pb = document.createElement('div'); pb.className = 'ux-app-page-information__license sid-privacy-link'; pb.innerHTML = btnHtml('개인정보처리방침', { size: 'lg' }); lw.parentNode.insertBefore(pb, lw); } } catch (e) { console.error(e); }\n    var nm = root.querySelector('.ux-app-page-information__title__name');")
+sub("      if (node.matches('.ux-app-page-information__license')) { act = 'lic'; break; }\n      if (node.matches('#sid-id-view",
+    "      if (node.matches('.sid-privacy-link')) { act = 'priv'; break; }\n      if (node.matches('.ux-app-page-information__license')) { act = 'lic'; break; }\n      if (node.matches('#sid-id-view")
+sub("    else if (act === 'tips') openTips();",
+    "    else if (act === 'tips') openTips();\n    else if (act === 'priv') openNative('SidPrivacyPage');")
+sub(".sid-pg .sid-danger-title { color: #e5392d !important; }",
+    ".sid-pg .sid-danger-title { color: #e5392d !important; } .sid-pg wx-list-item span { white-space: pre-line !important; }")
+sub(".ux-app-page-information__license { display: flex; justify-content: center; }",
+    ".ux-app-page-information__license { display: flex; justify-content: center; } .ux-app-page-information__bottom-wrapper:has(.sid-privacy-link) { flex-direction: column !important; align-items: center !important; } .sid-privacy-link { margin-bottom: 12px; }")
 
 # ── 3) 스캔 페이지 + 확인 모달 (템플릿 부품) ──
 SCAN_JS = r"""
