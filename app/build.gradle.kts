@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
@@ -13,6 +14,22 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
+    }
+
+    // 같은 기능의 두 버전: web = HTML(WebView), native = Jetpack Compose. 서로 다른 앱으로 같이 설치할 수 있다.
+    flavorDimensions += "ui"
+    productFlavors {
+        create("web") {
+            dimension = "ui"
+        }
+        create("native") {
+            dimension = "ui"
+            applicationIdSuffix = ".native"
+        }
+    }
+
+    buildFeatures {
+        compose = true
     }
 
     buildTypes {
@@ -54,6 +71,15 @@ dependencies {
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.19.2")
 
     implementation("com.google.android.gms:play-services-tasks:18.2.0")
+
+    // native 버전 전용 (Jetpack Compose)
+    val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
+    "nativeImplementation"(composeBom)
+    "nativeImplementation"("androidx.compose.ui:ui")
+    "nativeImplementation"("androidx.compose.foundation:foundation")
+    "nativeImplementation"("androidx.compose.material3:material3")
+    "nativeImplementation"("androidx.activity:activity-compose:1.9.3")
+    "nativeImplementation"("com.google.zxing:core:3.5.3")             // 바코드 그리기 (Code128)
 
     testImplementation("junit:junit:4.13.2")
 }

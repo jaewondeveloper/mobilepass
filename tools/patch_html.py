@@ -2,7 +2,7 @@
 """원본 학생증 HTML을 안드로이드 WebView용으로 패치한다.
 
 사용법:  python3 tools/patch_html.py <원본.html> [출력.html]
-기본 출력: app/src/main/assets/index.html
+기본 출력: app/src/web/assets/index.html
 
 모든 패치는 앱이 주입하는 'SidNative' 가 있을 때만 동작하므로, 브라우저에서 열면 원래 동작 그대로다.
 
@@ -23,7 +23,7 @@ import sys
 import pathlib
 
 src = pathlib.Path(sys.argv[1])
-dst = pathlib.Path(sys.argv[2]) if len(sys.argv) > 2 else pathlib.Path(__file__).resolve().parent.parent / "app/src/main/assets/index.html"
+dst = pathlib.Path(sys.argv[2]) if len(sys.argv) > 2 else pathlib.Path(__file__).resolve().parent.parent / "app/src/web/assets/index.html"
 html = src.read_text(encoding="utf-8")
 
 

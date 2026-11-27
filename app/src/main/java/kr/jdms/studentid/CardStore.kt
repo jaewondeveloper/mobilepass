@@ -38,6 +38,8 @@ class CardStore(context: Context) {
         runCatching { profileFile.delete() }
     }
 
+    fun profileBytes(): ByteArray? = runCatching { profileFile.takeIf { it.exists() }?.readBytes() }.getOrNull()
+
     /** 웹에서 바로 <img src> 로 쓸 수 있는 data URL. 없으면 null */
     fun profileDataUrl(): String? {
         val f = profileFile
@@ -47,6 +49,12 @@ class CardStore(context: Context) {
         } catch (e: Exception) {
             null
         }
+    }
+
+    fun load(): Pair<String, String>? {
+        val n = prefs.getString(KEY_NAME, null) ?: return null
+        val c = prefs.getString(KEY_CODE, null) ?: return null
+        return n to c
     }
 
     /** JS에 넘길 JSON. 없으면 null. */
