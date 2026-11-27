@@ -567,6 +567,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         webView.onResume()
+        if (store.purgeIfExpired()) webView.reload()      // 유효기간이 지난 학생증은 자동 삭제
     }
 
     override fun onPause() {

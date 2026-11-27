@@ -113,6 +113,7 @@ class CardScanner(
     fun resume() {
         if (released) return
         consensus.reset()
+        ScanSession.clear()
         lastHint = ""
         lastProgressAt = SystemClock.elapsedRealtime()
         phase = Phase.SCANNING
@@ -202,7 +203,14 @@ class CardScanner(
                 phase = Phase.DONE
                 val jpeg = thumbnail(card)
                 card.recycle()
-                activity.runOnUiThread { if (!released) listener.onResult(result.name, result.code, jpeg) }
+                if (CardValidity.isExpired(result.expiry)) {
+                    // 유효기간이 지난 학생증은 등록하지 않는다
+                    activity.runOnUiThread { if (!released) listener.onError(activity.getString(R.string.err_expired, CardValidity.pretty(result.expiry))) }
+                } else {
+                    ScanSession.name = result.name
+                    ScanSession.expiry = result.expiry
+                    activity.runOnUiThread { if (!released) listener.onResult(result.name, result.code, jpeg) }
+                }
             } else {
                 card.recycle()
                 val hint = hintFor(obs, luma)
@@ -240,7 +248,10 @@ class CardScanner(
         } else emptyList()
 
         val parsed = CardParser.parse(lines)
-        return Observation(barcode, parsed.ocrCode, parsed.name, parsed.hasSchool, parsed.hasTitle)
+        return Observation(
+            barcode, parsed.ocrCode, parsed.name, parsed.hasSchool, parsed.hasTitle,
+            parsed.hasPrincipal, parsed.hasAddress, parsed.hasTel, parsed.expiry,
+        )
     }
 
     private fun thumbnail(card: Bitmap): ByteArray {
@@ -258,7 +269,9 @@ class CardScanner(
         val school: Boolean
         val code: Boolean
         val name: Boolean
+        val back: Boolean
         synchronized(consensus) {
+            back = consensus.backSeen && consensus.leadingExpiry() != null
             school = consensus.schoolSeen
             code = consensus.leadingCode() != null
             name = consensus.leadingName() != null
@@ -269,6 +282,7 @@ class CardScanner(
                 luma < LUMA_DARK -> R.string.hint_dark
                 luma > LUMA_GLARE -> R.string.hint_glare
                 school && code && !name -> R.string.hint_need_name
+                school && code && !back -> R.string.hint_need_back
                 school && code -> R.string.hint_reading
                 school -> R.string.hint_need_barcode
                 code -> R.string.hint_need_school

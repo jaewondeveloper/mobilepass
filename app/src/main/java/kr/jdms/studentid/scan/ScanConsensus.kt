@@ -7,9 +7,13 @@ data class Observation(
     val name: String? = null,
     val hasSchool: Boolean = false,
     val hasTitle: Boolean = false,
+    val hasPrincipal: Boolean = false,   // 뒷면 '중동중학교장'
+    val hasAddress: Boolean = false,
+    val hasTel: Boolean = false,
+    val expiry: String? = null,          // 유효기간 끝 'yyyy-MM-dd'
 )
 
-data class ScanResult(val code: String, val name: String)
+data class ScanResult(val code: String, val name: String, val expiry: String = "")
 
 /**
  * 최근 프레임들의 결과를 모아 값을 확정한다. (안드로이드 의존성 없음)
@@ -27,7 +31,16 @@ class ScanConsensus(private val window: Int = 6) {
     var schoolSeen = false
         private set
 
+    /** 뒷면의 '중동중학교장', 주소, 전화번호가 읽혔는지 (리셋 전까지 유지) */
+    var principalSeen = false; private set
+    var addressSeen = false; private set
+    var telSeen = false; private set
+    val backSeen: Boolean get() = principalSeen && addressSeen && telSeen
+
     fun add(obs: Observation) {
+        if (obs.hasPrincipal) principalSeen = true
+        if (obs.hasAddress) addressSeen = true
+        if (obs.hasTel) telSeen = true
         entries.addLast(obs)
         while (entries.size > window) entries.removeFirst()
         if (obs.hasSchool) schoolSeen = true
@@ -36,6 +49,7 @@ class ScanConsensus(private val window: Int = 6) {
     fun reset() {
         entries.clear()
         schoolSeen = false
+        principalSeen = false; addressSeen = false; telSeen = false
     }
 
     private fun codeScores(): Map<String, Int> {
@@ -65,12 +79,20 @@ class ScanConsensus(private val window: Int = 6) {
     fun leadingCode(): String? = leader(codeScores(), MIN_CODE_SCORE)
     fun leadingName(): String? = leader(nameScores(), MIN_NAME_SCORE)
 
+    fun leadingExpiry(): String? {
+        val m = HashMap<String, Int>()
+        for (e in entries) e.expiry?.let { m.merge(it, 1, Int::plus) }
+        return leader(m, 1)
+    }
+
     /** 합의된 최종 결과. 아직이면 null. */
     fun result(): ScanResult? {
         if (!schoolSeen) return null
         val code = leadingCode() ?: return null
         val name = leadingName() ?: return null
-        return ScanResult(code, name)
+        if (!backSeen) return null           // 중동중학교 학생증 뒷면 양식(교장·주소·전화)이 모두 보여야 한다
+        val expiry = leadingExpiry() ?: return null
+        return ScanResult(code, name, expiry)
     }
 
     companion object {

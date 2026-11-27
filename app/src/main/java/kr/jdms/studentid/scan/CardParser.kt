@@ -21,6 +21,10 @@ data class ParsedText(
     val hasTitle: Boolean,
     val name: String?,
     val ocrCode: String?,
+    val hasPrincipal: Boolean = false,   // '중동중학교장' (뒷면 직인 글자)
+    val expiry: String? = null,          // 유효기간 끝 날짜 'yyyy-MM-dd'
+    val hasAddress: Boolean = false,     // 학교 주소
+    val hasTel: Boolean = false,         // 학교 전화번호
 )
 
 /**
@@ -92,8 +96,53 @@ object CardParser {
         // '중앙중학교'처럼 한 글자만 다른 다른 학교가 통과하지 않도록, 근사 일치는 '중동'이 있을 때만 허용
         val hasSchool = all.contains(SCHOOL) || (all.contains("중동") && fuzzyContains(all, SCHOOL, 1))
         val hasTitle = all.contains("학생증") || TITLE_FUZZY.containsMatchIn(all)
-        return ParsedText(hasSchool, hasTitle, extractName(lines), extractOcrCode(all))
+        return ParsedText(
+            hasSchool, hasTitle, extractName(lines), extractOcrCode(all),
+            hasPrincipal = hasPrincipal(all), expiry = extractExpiry(all),
+            hasAddress = hasAddress(all), hasTel = hasTel(all),
+        )
     }
+
+    private val RANGE_RE = Regex("(20\\d\\d)[.,·](\\d{1,2})[.,·](\\d{1,2})[.,·]?[~\\-–—∼〜](20\\d\\d)[.,·](\\d{1,2})[.,·](\\d{1,2})")
+
+    /** 뒷면 아래 '중동중학교장' (앞면의 '중동중학교'만으로는 통과하지 않도록 '장'까지 확인) */
+    internal fun hasPrincipal(all: String): Boolean =
+        all.contains("중동중학교장") ||
+            (all.contains("중동") && Regex("(학교|학괴|학고)[장징창]").containsMatchIn(all)) ||
+            (all.contains("중동") && all.contains("교장"))
+
+    /** 서울시 강남구 일원로 8길 37 (글자 2개까지 틀려도 인정) */
+    internal fun hasAddress(all: String): Boolean = fuzzyContains(all, "강남구일원로8길37", 2)
+
+    /** TEL.070-7092-9300 → 숫자만 모아 비교 (1자리 오차 허용) */
+    internal fun hasTel(all: String): Boolean = fuzzyContains(all.filter { it in '0'..'9' }, "07070929300", 1)
+
+    /** '유효기간: 2025.3.4.~2028.2.28.' → 끝 날짜 2028-02-28. 형식이 이상하면 null */
+    internal fun extractExpiry(all: String): String? {
+        for (m in RANGE_RE.findAll(all)) {
+            val g = m.groupValues.drop(1).map { it.toInt() }
+            val y1 = g[0]; val m1 = g[1]; val d1 = g[2]; val y2 = g[3]; val m2 = g[4]; val d2 = g[5]
+            if (m1 !in 1..12 || m2 !in 1..12 || d1 !in 1..31 || d2 !in 1..31) continue
+            val a = y1 * 10000 + m1 * 100 + d1
+            val b = y2 * 10000 + m2 * 100 + d2
+            if (b <= a || y2 - y1 > 8) continue
+            return "%04d-%02d-%02d".format(y2, m2, d2)
+        }
+        return null
+    }
+
+    /** 앞면: 사진 아래 큰 이름이 뒷면에서 읽은 이름과 같은지 (글자 사이 공백 무시) */
+    fun frontNameMatches(rawLines: List<OcrLine>, name: String): Boolean {
+        val n = squash(normalize(name))
+        if (n.isEmpty()) return false
+        return rawLines.any {
+            val t = squash(normalize(it.text))
+            t == n || (t.length <= n.length + 2 && t.contains(n))
+        }
+    }
+
+    /** 앞면: 아래쪽 '중동중학교' */
+    fun frontHasSchool(rawLines: List<OcrLine>): Boolean = parse(rawLines).hasSchool
 
     private fun cleanName(raw: String): String? {
         val n = squash(raw)

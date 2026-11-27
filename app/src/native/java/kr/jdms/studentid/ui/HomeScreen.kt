@@ -113,17 +113,17 @@ fun SchoolMenu(open: Boolean, top: androidx.compose.ui.unit.Dp, onDismiss: () ->
 
 /** 홈의 '내일/오늘 시간표' 줄에 쓸 (제목, 과목들). 학년·반이 없거나 아직 못 불러왔으면 null */
 @Composable
-fun rememberTimetableStrip(state: AppState): Pair<String, List<String>>? {
+fun rememberTimetableStrip(state: AppState): Pair<String, List<Pair<Int, String>>>? {
     state.stripPreview?.let { return it }
     var now by remember { mutableStateOf(java.time.LocalDateTime.now()) }
     LaunchedEffect(Unit) { if (IdTabConfig.liveClock) while (true) { kotlinx.coroutines.delay(30_000); now = java.time.LocalDateTime.now() } }
     val target = kr.jdms.studentid.school.TimetableView.target(now)
-    var subjects by remember { mutableStateOf<List<String>?>(null) }
+    var subjects by remember { mutableStateOf<List<Pair<Int, String>>?>(null) }
     LaunchedEffect(state.classTick, target) {
         if (!state.school.config.isSet) { subjects = null; return@LaunchedEffect }
         state.school.loadTimetable(target) { r ->
             val ymd = kr.jdms.studentid.school.Neis.ymd(target)
-            subjects = r.value?.days?.firstOrNull { it.ymd == ymd }?.lessons?.map { it.subject }
+            subjects = r.value?.days?.firstOrNull { it.ymd == ymd }?.lessons?.map { it.period to it.subject }
         }
     }
     val s = subjects
@@ -191,9 +191,14 @@ fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon:
                         ) {
                             rows.forEach { row ->
                                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    row.forEach { name ->
+                                    row.forEach { (period, name) ->
                                         Box(Modifier.weight(1f).height(48.dp).clip(RoundedCornerShape(22.dp)).background(c.tile), contentAlignment = Alignment.Center) {
-                                            T(name, 15, c.text, 600, maxLines = 1, softWrap = false, single = true)
+                                            // 몇 교시인지 작은 번호로 함께 보여 준다
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                T(period.toString(), 12, c.textMuted, 600, single = true)
+                                                androidx.compose.foundation.layout.Spacer(Modifier.width(6.dp))
+                                                T(name, 15, c.text, 600, maxLines = 1, softWrap = false, single = true)
+                                            }
                                         }
                                     }
                                     repeat(4 - row.size) { Box(Modifier.weight(1f)) }

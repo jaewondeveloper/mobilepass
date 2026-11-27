@@ -93,6 +93,11 @@ class NativeActivity : AppCompatActivity() {
         if (savedInstanceState == null) kr.jdms.studentid.SplashView.show(this)
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (::state.isInitialized) state.reload()      // 유효기간이 지난 학생증은 불러오는 순간 자동 삭제된다
+    }
+
     override fun onDestroy() {
         scan.release()
         if (embedder.isInitialized()) embedder.value.close()

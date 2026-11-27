@@ -5,13 +5,13 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ScanConsensusTest {
-    private fun obs(code: String? = null, name: String? = null, school: Boolean = false, ocr: String? = null) =
-        Observation(barcode = code, ocrCode = ocr, name = name, hasSchool = school)
+    private fun obs(code: String? = null, name: String? = null, school: Boolean = false, ocr: String? = null, back: Boolean = true) =
+        Observation(barcode = code, ocrCode = ocr, name = name, hasSchool = school, hasPrincipal = back, hasAddress = back, hasTel = back, expiry = if (back) "2028-02-28" else null)
 
     @Test fun singleCompleteFrameIsEnough() {
         val c = ScanConsensus()
         c.add(obs("S1234567", "홍길동", true))
-        assertEquals(ScanResult("S1234567", "홍길동"), c.result())
+        assertEquals(ScanResult("S1234567", "홍길동", "2028-02-28"), c.result())
     }
 
     @Test fun resultsCombineAcrossFrames() {
@@ -19,7 +19,7 @@ class ScanConsensusTest {
         c.add(obs("S1234567", null, true))      // 이름만 못 읽은 프레임
         assertNull(c.result())
         c.add(obs(null, "홍길동", false))        // 이름만 읽은 프레임
-        assertEquals(ScanResult("S1234567", "홍길동"), c.result())
+        assertEquals(ScanResult("S1234567", "홍길동", "2028-02-28"), c.result())
     }
 
     @Test fun nameIsRequired() {
@@ -40,7 +40,7 @@ class ScanConsensusTest {
         val c = ScanConsensus()
         repeat(3) { c.add(obs("S1234567", "홍길동", true)) }
         c.add(obs("S1234567", "홍길똥", true))
-        assertEquals(ScanResult("S1234567", "홍길동"), c.result())
+        assertEquals(ScanResult("S1234567", "홍길동", "2028-02-28"), c.result())
     }
 
     @Test fun ambiguousIsNotAccepted() {
@@ -62,6 +62,12 @@ class ScanConsensusTest {
         val c = ScanConsensus(window = 3)
         repeat(3) { c.add(obs("S1111111", "김가나", true)) }
         repeat(3) { c.add(obs("S2222222", "이다라", true)) }
-        assertEquals(ScanResult("S2222222", "이다라"), c.result())
+        assertEquals(ScanResult("S2222222", "이다라", "2028-02-28"), c.result())
+    }
+
+    @Test fun backSideFieldsAreRequired() {
+        val c = ScanConsensus()
+        c.add(obs(code = "S1234567", name = "홍길동", school = true, back = false))
+        assertNull(c.result())
     }
 }

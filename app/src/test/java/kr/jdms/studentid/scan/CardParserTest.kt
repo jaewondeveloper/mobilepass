@@ -70,4 +70,40 @@ class CardParserTest {
         assertEquals("정하늘", p.name)
         assertEquals("S7654321", p.ocrCode)
     }
+
+    private val back = listOf(
+        "학생증", "이 름: 신재원", "생년월일: 2012.02.27.", "유효기간: 2025.3.4.~2028.2.28.", "위 학생은 본교 학생임을 증명함.",
+        "중동중학교장", "서울시 강남구 일원로 8길 37(일원동)", "TEL.070-7092-9300", "홈페이지 http://www.joongdong.ms.kr", "M2510135",
+    ).map { OcrLine(it) }
+
+    @Test fun backSideFieldsAreRead() {
+        val p = CardParser.parse(back)
+        assertTrue(p.hasSchool); assertTrue(p.hasPrincipal); assertTrue(p.hasAddress); assertTrue(p.hasTel)
+        assertEquals("2028-02-28", p.expiry)
+        assertEquals("신재원", p.name)
+    }
+
+    @Test fun frontSideIsNotBackSide() {
+        val p = CardParser.parse(listOf(OcrLine("신 재 원"), OcrLine("중동중학교")))
+        assertTrue(!p.hasPrincipal); assertTrue(!p.hasAddress); assertTrue(!p.hasTel); assertNull(p.expiry)
+    }
+
+    @Test fun otherSchoolBackIsRejected() {
+        val p = CardParser.parse(back.map { OcrLine(it.text.replace("중동", "중앙").replace("강남구 일원로 8길 37", "서초구 반포대로 1")) })
+        assertTrue(!p.hasPrincipal); assertTrue(!p.hasAddress)
+    }
+
+    @Test fun frontNameMustMatchBack() {
+        val front = listOf(OcrLine("신 재 원"), OcrLine("중동중학교"))
+        assertTrue(CardParser.frontNameMatches(front, "신재원"))
+        assertTrue(!CardParser.frontNameMatches(front, "홍길동"))
+        assertTrue(CardParser.frontHasSchool(front))
+    }
+
+    @Test fun expiryRule() {
+        val d = java.time.LocalDate.of(2028, 2, 28)
+        assertTrue(!CardValidity.isExpired("2028-02-28", d))
+        assertTrue(CardValidity.isExpired("2028-02-28", d.plusDays(1)))
+        assertTrue(!CardValidity.isExpired("", d.plusYears(5)))
+    }
 }

@@ -94,7 +94,7 @@ STRIP_JS = r"""
     return diff === 0 ? '오늘 시간표' : diff === 1 ? '내일 시간표' : DOWK[target.getDay()] + '요일 시간표';
   }
   function ymdOf(d) { var m = d.getMonth() + 1, dd = d.getDate(); return '' + d.getFullYear() + (m < 10 ? '0' : '') + m + (dd < 10 ? '0' : '') + dd; }
-  var TT_CSS = '#sid-tt-strip{display:block;} .sid-tt-card{box-sizing:border-box;background:#FCFCFF;border-radius:28px;padding:9px 8px 8px;} .sid-tt-label{font-size:13px;font-weight:600;line-height:16px;padding:0 8px 8px;color:rgba(1,1,2,.6);} .sid-tt-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;} .sid-tt-chip{box-sizing:border-box;height:48px;padding:0 6px;border-radius:22px;display:flex;align-items:center;justify-content:center;background:rgba(23,23,26,.04);color:#010102;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;} #sid-tt-strip[data-dark] .sid-tt-card{background:#17171A;} #sid-tt-strip[data-dark] .sid-tt-label{color:rgba(252,252,255,.6);} #sid-tt-strip[data-dark] .sid-tt-chip{background:rgba(252,252,255,.05);color:#FAFAFF;}';
+  var TT_CSS = '#sid-tt-strip{display:block;} .sid-tt-card{box-sizing:border-box;background:#FCFCFF;border-radius:28px;padding:9px 8px 8px;} .sid-tt-label{font-size:13px;font-weight:600;line-height:16px;padding:0 8px 8px;color:rgba(1,1,2,.6);} .sid-tt-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;} .sid-tt-chip{box-sizing:border-box;height:48px;padding:0 6px;border-radius:22px;display:flex;align-items:center;justify-content:center;background:rgba(23,23,26,.04);color:#010102;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;} #sid-tt-strip .sid-tt-n{font-size:12px;font-weight:600;margin-right:6px;color:rgba(1,1,2,.4);} #sid-tt-strip[data-dark] .sid-tt-n{color:rgba(252,252,255,.45);} #sid-tt-strip[data-dark] .sid-tt-card{background:#17171A;} #sid-tt-strip[data-dark] .sid-tt-label{color:rgba(252,252,255,.6);} #sid-tt-strip[data-dark] .sid-tt-chip{background:rgba(252,252,255,.05);color:#FAFAFF;}';
   function ttRemove(strip) {
     if (strip) strip.remove();
     var m = document.querySelectorAll('[data-sid-moved]');
@@ -117,7 +117,7 @@ STRIP_JS = r"""
       SCH.cbs[id] = function (r) {
         TTS.busy = false;
         var day = r && r.ok && r.data && r.data.days ? r.data.days.filter(function (d) { return d.ymd === ymdOf(target); })[0] : null;
-        TTS.subjects = day ? day.lessons.map(function (l) { return l.subject; }) : [];
+        TTS.subjects = day ? day.lessons.map(function (l) { return { p: l.period, s: l.subject }; }) : [];
         TTS.label = ttLabel(target, new Date());
         TTS.shown = '';
         patchTTStrip();
@@ -125,7 +125,7 @@ STRIP_JS = r"""
       try { window.SidNative.loadTimetableOn(id, ymdOf(target)); } catch (e) { TTS.busy = false; }
     }
     if (!TTS.subjects || !TTS.subjects.length) { ttRemove(strip); return; }
-    var sig = TTS.label + '|' + TTS.subjects.join(',');
+    var sig = TTS.label + '|' + TTS.subjects.map(function (x) { return x.p + x.s; }).join(',');
     if (strip && strip.getAttribute('data-sig') === sig) return;
     if (!strip) { strip = document.createElement('div'); strip.id = 'sid-tt-strip'; anchor.insertAdjacentElement('afterend', strip); }
     strip.setAttribute('data-sig', sig);
@@ -141,7 +141,8 @@ STRIP_JS = r"""
     var row = strip.querySelector('.sid-tt-row');
     TTS.subjects.forEach(function (n) {
       var c = document.createElement('div'); c.className = 'sid-tt-chip';
-      var t = document.createElement('span'); t.textContent = n; c.appendChild(t); row.appendChild(c);
+      var no = document.createElement('span'); no.className = 'sid-tt-n'; no.textContent = n.p;          // 몇 교시인지
+      var t = document.createElement('span'); t.textContent = n.s; c.appendChild(no); c.appendChild(t); row.appendChild(c);
     });
   }
 """

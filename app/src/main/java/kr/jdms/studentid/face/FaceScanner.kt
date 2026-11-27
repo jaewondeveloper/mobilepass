@@ -20,7 +20,12 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.doOnLayout
 import com.google.android.gms.tasks.Tasks
 import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
 import kr.jdms.studentid.R
+import kr.jdms.studentid.scan.CardParser
+import kr.jdms.studentid.scan.OcrLine
+import kr.jdms.studentid.scan.ScanSession
 import kr.jdms.studentid.scan.toUprightBitmap
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -60,6 +65,9 @@ class FaceScanner(
     private val cardDetector by lazy { makeFaceDetector(fast = false, minFace = 0.05f, classification = false) }
     private val selfieDetector by lazy { makeFaceDetector(fast = true, minFace = 0.25f, classification = true) }
     private val portrait = PortraitProcessor()
+    private val textRecognizer by lazy { TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build()) }
+    private var frontSchoolOk = false      // 앞면 아래쪽 '중동중학교'
+    private var frontNameOk = false        // 사진 아래 이름 = 뒷면 이름
 
     @Volatile private var phase = Phase.IDLE
     private var mode = Mode.SELFIE
@@ -107,6 +115,7 @@ class FaceScanner(
         worker.shutdownNow()
         runCatching { cardDetector.close() }
         runCatching { selfieDetector.close() }
+        runCatching { textRecognizer.close() }
         portrait.close()
     }
 
@@ -117,6 +126,8 @@ class FaceScanner(
         goods.forEach { it.frame.recycle() }
         goods.clear()
         blink.reset()
+        frontSchoolOk = false
+        frontNameOk = false
     }
 
     /** 메인 스레드에서만 호출 */
@@ -196,6 +207,19 @@ class FaceScanner(
         val face = faces.maxByOrNull { it.boundingBox.width() * it.boundingBox.height() }?.toInfo()
         if (face == null) { emit(activity.getString(R.string.face_card_none), false); return }
         if (face.box.width() < MIN_CARD_FACE_PX) { emit(activity.getString(R.string.face_card_small), false); return }
+
+        // 앞면 확인: 아래쪽 '중동중학교' 와 사진 아래 이름(뒷면 이름과 같아야 함)
+        if (!(frontSchoolOk && frontNameOk)) {
+            val lines = runCatching {
+                Tasks.await(textRecognizer.process(InputImage.fromBitmap(frame, 0))).textBlocks.flatMap { it.lines }
+                    .map { OcrLine(it.text) }
+            }.getOrDefault(emptyList())
+            if (CardParser.frontHasSchool(lines)) frontSchoolOk = true
+            val expected = ScanSession.name
+            if (expected != null && CardParser.frontNameMatches(lines, expected)) frontNameOk = true
+        }
+        if (!frontSchoolOk) { emit(activity.getString(R.string.face_front_school), true); return }
+        if (!frontNameOk) { emit(activity.getString(R.string.face_front_name), true); return }
 
         val aligned = alignFace(frame, face)
         val sharp = sharpnessOf(frame, face.box)

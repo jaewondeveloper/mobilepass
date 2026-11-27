@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Base64
 import java.io.File
 import kr.jdms.studentid.scan.CardParser
+import kr.jdms.studentid.scan.CardValidity
+import kr.jdms.studentid.scan.ScanSession
 import org.json.JSONObject
 
 /** 등록된 학생증 정보를 앱 전용 저장소에 보관 (백업 비활성화, 다른 앱에서 접근 불가). */
@@ -12,11 +14,12 @@ class CardStore(context: Context) {
     private val prefs = appContext.getSharedPreferences("student_card", Context.MODE_PRIVATE)
     private val profileFile get() = File(appContext.filesDir, "profile.png")
 
-    fun save(name: String, code: String): Boolean {
+    fun save(name: String, code: String, expiry: String? = ScanSession.expiry): Boolean {
         val c = CardParser.normalizeCode(code) ?: return false
         val n = name.trim()
         if (n.length !in 1..20) return false
-        prefs.edit().putString(KEY_NAME, n).putString(KEY_CODE, c).apply()
+        prefs.edit().putString(KEY_NAME, n).putString(KEY_CODE, c).putString(KEY_EXPIRY, expiry ?: "").apply()
+        ScanSession.clear()
         return true
     }
 
@@ -51,7 +54,16 @@ class CardStore(context: Context) {
         }
     }
 
+    /** 유효기간이 지났으면 등록 정보와 프로필 사진을 지운다. 지웠으면 true */
+    fun purgeIfExpired(): Boolean {
+        if (prefs.getString(KEY_NAME, null) == null) return false
+        if (!CardValidity.isExpired(prefs.getString(KEY_EXPIRY, null))) return false
+        clear()
+        return true
+    }
+
     fun load(): Pair<String, String>? {
+        purgeIfExpired()
         val n = prefs.getString(KEY_NAME, null) ?: return null
         val c = prefs.getString(KEY_CODE, null) ?: return null
         return n to c
@@ -59,6 +71,7 @@ class CardStore(context: Context) {
 
     /** JS에 넘길 JSON. 없으면 null. */
     fun toJson(): String? {
+        purgeIfExpired()
         val n = prefs.getString(KEY_NAME, null) ?: return null
         val c = prefs.getString(KEY_CODE, null) ?: return null
         return JSONObject().put("name", n).put("code", c).toString()
@@ -67,5 +80,6 @@ class CardStore(context: Context) {
     private companion object {
         const val KEY_NAME = "name"
         const val KEY_CODE = "code"
+        const val KEY_EXPIRY = "expiry"
     }
 }

@@ -142,8 +142,8 @@ class ScreenshotTest {
         savePng("licenses-scrolled")
     }
 
-    @Test fun home_strip_light() = shot("home-strip-light", false) { it.tab = Tab.HOME; it.stripPreview = "내일 시간표" to listOf("국어", "수학", "영어", "과학", "사회", "체육", "음악") }
-    @Test fun home_strip_dark() = shot("home-strip-dark", true) { it.tab = Tab.HOME; it.stripPreview = "오늘 시간표" to listOf("국어", "수학", "영어", "과학") }
+    @Test fun home_strip_light() = shot("home-strip-light", false) { it.tab = Tab.HOME; it.stripPreview = "내일 시간표" to listOf("국어", "수학", "영어", "과학", "사회", "체육", "음악").mapIndexed { i, n -> i + 1 to n } }
+    @Test fun home_strip_dark() = shot("home-strip-dark", true) { it.tab = Tab.HOME; it.stripPreview = "오늘 시간표" to listOf("국어", "수학", "영어", "과학").mapIndexed { i, n -> i + 1 to n } }
 
     @Test fun timetable_light() {
         val sample = kr.jdms.studentid.school.Timetable("컴시간", 2, 3, listOf(
