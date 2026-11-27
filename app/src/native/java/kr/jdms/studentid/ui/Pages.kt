@@ -1,5 +1,6 @@
 package kr.jdms.studentid.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -59,7 +60,7 @@ fun TipsPage(onBack: () -> Unit) {
 
 /** 정보 페이지: 제목 34/700 (y=109), 버전 13 (y=166), 최신 상태 13 (y=184), 오픈소스 라이선스 버튼은 아래에서 24 위 200x52 */
 @Composable
-fun InfoPage(onBack: () -> Unit, onLicenses: () -> Unit) {
+fun InfoPage(onBack: () -> Unit, onLicenses: () -> Unit, onPrivacy: () -> Unit = {}) {
     val c = LocalColors.current
     val bottom = LocalBottomInset.current
     Box(Modifier.fillMaxSize()) {
@@ -67,6 +68,10 @@ fun InfoPage(onBack: () -> Unit, onLicenses: () -> Unit) {
         PT("학생증", 196.5f, 109f, 34, if (c.dark) c.textBody else Color(0xFF252525), 700, a = A.C)
         PT("버전 1.0.0.0.23", 196.5f, 166.5f, 13, if (c.dark) c.textMuted else Color(0xFF909090), 400, a = A.C)
         PT("최신버전입니다.", 196.5f, 184f, 13, c.textSub, 400, a = A.C)
+        // 버튼 둘: 오픈소스 라이선스(아래에서 24), 그 위에 개인정보처리방침(12 간격)
+        Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp + 52.dp + 12.dp + bottom).width(200.dp).height(52.dp)) {
+            PillButton("개인정보처리방침", onClick = onPrivacy, modifier = Modifier.fillMaxSize())
+        }
         Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp + bottom).width(200.dp).height(52.dp)) {
             PillButton("오픈소스 라이선스", onClick = onLicenses, modifier = Modifier.fillMaxSize())
         }
@@ -76,19 +81,62 @@ fun InfoPage(onBack: () -> Unit, onLicenses: () -> Unit) {
 
 @Composable
 fun LicensesPage(onBack: () -> Unit) {
+    val c = LocalColors.current
     PageFrame("오픈소스 라이선스", onBack) {
+        Box(Modifier.fillMaxWidth().padding(start = 28.dp, end = 28.dp, bottom = 16.dp)) {
+            T(LegalTexts.LICENSES_INTRO, 14, c.textSub, 400, lh = 20)
+        }
         SectionLabel("Android technologies")
         ListCard {
-            val items = listOf(
-                "Jetpack Compose, AndroidX" to "Apache License 2.0",
-                "AndroidX CameraX" to "Apache License 2.0",
-                "Google ML Kit (Barcode, Text, Face, Segmentation)" to "ML Kit Terms of Service",
-                "ONNX Runtime" to "MIT License",
-                "ZXing core" to "Apache License 2.0",
-                "Kotlin Standard Library" to "Apache License 2.0",
-            )
-            items.forEachIndexed { i, (n, l) -> ListRow(n, l, divider = i < items.size - 1) }
+            LegalTexts.LIBS.forEachIndexed { i, lib ->
+                DocRow(
+                    title = lib.name,
+                    lines = listOf(lib.license, lib.copyright, lib.use),
+                    accentFirst = true,
+                    divider = i < LegalTexts.LIBS.size - 1,
+                )
+            }
         }
+        Spacer(Modifier.height(20.dp))
+        SectionLabel("라이선스 고지")
+        ListCard {
+            DocRow(LegalTexts.APACHE_TITLE, listOf(LegalTexts.APACHE), divider = true)
+            DocRow(LegalTexts.MIT_TITLE, listOf(LegalTexts.MIT), divider = true)
+            DocRow(LegalTexts.MLKIT_TITLE, listOf(LegalTexts.MLKIT))
+        }
+    }
+}
+
+@Composable
+fun PrivacyPage(onBack: () -> Unit) {
+    val c = LocalColors.current
+    PageFrame(LegalTexts.PRIVACY_TITLE, onBack) {
+        Box(Modifier.fillMaxWidth().padding(start = 28.dp, end = 28.dp, bottom = 16.dp)) {
+            T(LegalTexts.PRIVACY_INTRO, 14, c.textSub, 400, lh = 20)
+        }
+        ListCard {
+            LegalTexts.PRIVACY.forEachIndexed { i, (h, body) ->
+                DocRow(h, listOf(body), divider = i < LegalTexts.PRIVACY.size - 1)
+            }
+        }
+    }
+}
+
+/** 긴 글 행: 제목 17/23 아래에 12~14 크기 설명 문단들 (목록 행과 같은 좌우 여백, 아래 구분선) */
+@Composable
+private fun DocRow(title: String, lines: List<String>, accentFirst: Boolean = false, divider: Boolean = false) {
+    val c = LocalColors.current
+    Box(Modifier.fillMaxWidth()) {
+        androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 13.dp)) {
+            T(title, 17, c.text, 400, lh = 23)
+            Spacer(Modifier.height(4.dp))
+            lines.forEachIndexed { i, l ->
+                if (i > 0) Spacer(Modifier.height(2.dp))
+                if (accentFirst && i == 0) T(l, 12, c.accentText, 400, lh = 16)
+                else T(l, 13, c.textSub, 400, lh = 19)
+            }
+        }
+        if (divider) Box(Modifier.align(Alignment.BottomStart).padding(horizontal = 16.dp).fillMaxWidth().height(1.dp).background(c.line))
     }
 }
 

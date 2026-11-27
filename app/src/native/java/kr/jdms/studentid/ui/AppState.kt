@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import kr.jdms.studentid.CardStore
 
 enum class Tab { HOME, CARD, MENU }
-enum class Page { NONE, SETTINGS, TIPS, INFO, LICENSES, SCAN }
+enum class Page { NONE, SETTINGS, TIPS, INFO, LICENSES, PRIVACY, SCAN }
 enum class Step { ID, CARD_FACE, SELFIE }
 
 /** 화면이 읽는 앱 상태. 학생증/프로필 사진은 CardStore(기기 내부 저장소)가 원본이다. */

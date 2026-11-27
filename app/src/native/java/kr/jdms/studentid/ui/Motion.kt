@@ -27,6 +27,9 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -63,13 +66,61 @@ object Motion {
     const val PAGE_DIM = 0.2f          // brightness(0.8)
 }
 
+/** 아주 빨리 탭해도 눌림 효과가 눈에 보이게 하는 최소 유지 시간 (원본은 눌림 전환이 항상 한 번은 재생된다) */
+const val MIN_PRESS_MS = 130L
+
+/** 누름 상태: down = 손가락이 닿아 있음, shown = 화면에 보이는 눌림(닿아 있거나 최소 유지 시간 안) */
+class PressHold {
+    var down by mutableStateOf(false)
+    var shown by mutableStateOf(false)
+    var since = 0L
+}
+
+@Composable
+fun rememberPressHold(): PressHold {
+    val h = remember { PressHold() }
+    LaunchedEffect(h.down) {
+        if (h.down) {
+            h.since = android.os.SystemClock.uptimeMillis()
+            h.shown = true
+        } else if (h.shown) {
+            val rest = MIN_PRESS_MS - (android.os.SystemClock.uptimeMillis() - h.since)
+            if (rest > 0) kotlinx.coroutines.delay(rest)
+            h.shown = false
+        }
+    }
+    return h
+}
+
+/**
+ * 탭 처리: 손가락이 닿는 순간(지연 없이) 눌림이 시작된다.
+ * (기본 clickable 은 빠른 탭에서 눌림 표시를 건너뛰어서 아무 반응이 없어 보였다)
+ */
+@Composable
+fun Modifier.pressTap(hold: PressHold, enabled: Boolean = true, onClick: (() -> Unit)?): Modifier {
+    if (onClick == null) return this
+    val current = androidx.compose.runtime.rememberUpdatedState(onClick)
+    return this
+        .pointerInput(enabled) {
+            detectTapGestures(
+                onPress = {
+                    if (enabled) {
+                        hold.down = true
+                        try { tryAwaitRelease() } finally { hold.down = false }
+                    }
+                },
+                onTap = { if (enabled) current.value() },
+            )
+        }
+        .semantics { role = androidx.compose.ui.semantics.Role.Button; this.onClick { current.value(); true } }
+}
+
 /** 누르는 동안 살짝 줄어들었다가 떼면 부드럽게 돌아오는 템플릿 버튼의 눌림 효과 + 클릭 */
 @Composable
 fun Modifier.recoilClickable(scale: Float = 0.96f, enabled: Boolean = true, onClick: () -> Unit): Modifier {
-    val source = remember { MutableInteractionSource() }
-    val pressed by source.collectIsPressedAsState()
-    val s by animateFloatAsState(if (pressed) scale else 1f, tween(Motion.RECOIL_MS, easing = Motion.Recoil), label = "recoil")
-    return this.graphicsLayer { scaleX = s; scaleY = s }.clickable(interactionSource = source, indication = null, enabled = enabled, onClick = onClick)
+    val hold = rememberPressHold()
+    val s by animateFloatAsState(if (hold.shown) scale else 1f, tween(Motion.RECOIL_MS, easing = Motion.Recoil), label = "recoil")
+    return this.graphicsLayer { scaleX = s; scaleY = s }.pressTap(hold, enabled, onClick)
 }
 
 private class Layer(val page: Page) {
@@ -151,8 +202,8 @@ fun PressBox(
     content: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit,
 ) {
     val c = LocalColors.current
-    val source = remember { MutableInteractionSource() }
-    val pressed by source.collectIsPressedAsState()
+    val hold = rememberPressHold()
+    val pressed = hold.shown
     val s by animateFloatAsState(if (pressed) scale else 1f, tween(Motion.RECOIL_MS, easing = Motion.Recoil), label = "press")
     val si by animateFloatAsState(if (pressed) innerScale else 1f, tween(Motion.RECOIL_MS, easing = Motion.Recoil), label = "pressInner")
     val a = remember { Animatable(0f) }
@@ -167,7 +218,7 @@ fun PressBox(
         if (rc.alpha > 0f && a.value > 0f) drawRect(rc.copy(alpha = rc.alpha * a.value))
     }
     if (border != Color.Unspecified) m = m.border(1.dp, border, shape)
-    if (onClick != null) m = m.clickable(interactionSource = source, indication = null, onClick = onClick)
+    m = m.pressTap(hold, true, onClick)
     Box(m, contentAlignment = contentAlignment) {
         androidx.compose.runtime.CompositionLocalProvider(LocalPressed provides pressed) {
             if (innerScale != 1f) Box(Modifier.graphicsLayer { scaleX = si; scaleY = si }, contentAlignment = contentAlignment) { content() }
@@ -179,18 +230,17 @@ fun PressBox(
 /** 안쪽 요소가 눌려도 바깥 카드가 함께 줄어드는 효과 (홈 대시보드 카드: 0.992). 눌림은 소비하지 않는다. */
 @Composable
 fun Modifier.pressScaleObserver(scale: Float): Modifier {
-    var pressed by remember { mutableStateOf(false) }
-    val s by animateFloatAsState(if (pressed) scale else 1f, tween(Motion.RECOIL_MS, easing = Motion.Recoil), label = "observe")
+    val hold = rememberPressHold()
+    val s by animateFloatAsState(if (hold.shown) scale else 1f, tween(Motion.RECOIL_MS, easing = Motion.Recoil), label = "observe")
     return this.graphicsLayer { scaleX = s; scaleY = s }.pointerInput(Unit) {
         awaitEachGesture {
             awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-            pressed = true
+            hold.down = true
             waitForUpOrCancellation(PointerEventPass.Initial)
-            pressed = false
+            hold.down = false
         }
     }
 }
-
 
 /** 배경을 기록해 둔 레이어. 반투명 + backdrop-filter: blur 인 요소(학교 선택 메뉴, 토스트)가 뒤 화면을 흐리게 비추는 데 쓴다. */
 val LocalBackdrop = androidx.compose.runtime.compositionLocalOf<androidx.compose.ui.graphics.layer.GraphicsLayer?> { null }

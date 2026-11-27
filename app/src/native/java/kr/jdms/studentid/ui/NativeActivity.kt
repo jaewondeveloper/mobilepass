@@ -183,7 +183,8 @@ fun AppSurface(
                             if (state.registered) { state.unregister(); toast.show("등록된 학생증을 삭제했어요") } else toast.show("등록된 학생증이 없어요")
                         })
                         Page.TIPS -> TipsPage { state.back() }
-                        Page.INFO -> InfoPage({ state.back() }, { state.open(Page.LICENSES) })
+                        Page.INFO -> InfoPage({ state.back() }, { state.open(Page.LICENSES) }, { state.open(Page.PRIVACY) })
+                        Page.PRIVACY -> PrivacyPage { state.back() }
                         Page.LICENSES -> LicensesPage { state.back() }
                         Page.SCAN -> scanScreen()
                         Page.NONE -> {}
