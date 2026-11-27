@@ -1312,7 +1312,7 @@ vx-more-tab .tab-content-span { transition: opacity .15s; }
 .sid-pg { display: flex; flex-direction: column; gap: 20px; padding: 0 0 40px; }
 .sid-pg-label { font-size: 13px; font-weight: 600; color: #636368; padding: 0 14px; margin-bottom: -8px; }
 .sid-pg wx-list-item.sid-noicon [slot=head], .sid-pg wx-list-item.sid-noicon .__head { display: none !important; }
-.sid-pg .sid-danger-title { color: #e5392d !important; } .sid-pg wx-list-item span { white-space: pre-line !important; }
+.sid-pg .sid-danger-title { color: #e5392d !important; } .sid-pg wx-list-item span { white-space: pre-line !important; } .sid-sch .sid-card-wrap { margin-bottom: 18px; }
 .list-container:has(> .sid-pg) { justify-content: flex-start !important; align-content: flex-start !important; }
 .list-container > .sid-pg { margin: 0 !important; align-self: stretch !important; }
 .sid-pg .menu-tab-card-content wx-list-item, .sid-pg vx-menu-tab-card { cursor: default; }
@@ -1669,6 +1669,7 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
         if (it.toggle) { PREF[it.toggle] = !PREF[it.toggle]; d.switch = sw(it); c.updateItems(data); try { if (window.SidNative && SidNative.switchHaptic) SidNative.switchHaptic(!!PREF[it.toggle]); } catch (e) {} }
         else if (it.act === 'scan') startScan();
         else if (it.act === 'unreg') doUnreg();
+        else if (typeof it.fn === 'function') it.fn();
       };
       return d;
     });
@@ -1727,6 +1728,8 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
           var pv = [["1. 수집하고 이용하는 정보", "앱은 학생증을 등록할 때 아래 정보를 사용해요.\n· 이름, 학번(바코드 번호): 모바일 학생증 화면과 바코드를 보여 주기 위해 사용해요.\n· 학생증 앞면 사진: 학생증에 인쇄된 얼굴 사진을 찾아 본인 확인에 비교하는 용도로만 잠깐 사용해요.\n· 본인 확인용 얼굴 사진(전면 카메라): 학생증 속 얼굴과 같은 사람인지 확인하는 동안에만 사용해요.\n· 프로필 사진: 확인이 끝난 뒤 배경을 지우고 가볍게 보정해서 학생증 카드에 보여 주는 사진이에요."], ["2. 처리 방식", "카메라 영상과 사진은 모두 기기 안에서 인식하고 처리해요. 이름, 학번, 사진은 학교나 개발자의 서버, 그 밖의 외부로 보내지 않아요. 얼굴 비교에 쓰는 계산값은 비교하는 동안에만 기기 메모리에 두고 저장하지 않아요. 학생증 앞면 사진과 본인 확인용 얼굴 사진은 확인이 끝나면 바로 지워요."], ["3. 보관과 삭제", "이름, 학번, 프로필 사진은 앱 전용 저장소(다른 앱이 읽을 수 없는 기기 내부 공간)에만 저장돼요. 클라우드 백업에도 포함하지 않아요. 설정의 '등록된 학생증 삭제'를 누르면 이름, 학번, 프로필 사진이 즉시 지워지고, 앱을 삭제하면 남은 데이터도 모두 사라져요. 학생증을 다시 등록하면 이전 정보는 새 정보로 바뀌어요."], ["4. 제3자 제공과 위탁", "앱은 개인정보를 제3자에게 제공하거나 처리를 맡기지 않아요. 다만 급식과 시간표를 보여 주려고 나이스(교육정보 개방 포털)와 컴시간 학생용 서버에 접속해요. 이때 보내는 것은 학교 이름과 학교 코드, 학년과 반 정보뿐이고, 이름·학번·사진 같은 개인정보는 보내지 않아요. 받아 온 급식·시간표는 기기에 임시로 저장해 두었다가 다시 요청하는 횟수를 줄여요. 글자·바코드·얼굴 인식에는 Google ML Kit의 기기 안 인식 기능을 쓰는데, 이때 사진이 외부로 전송되지 않아요. 다만 ML Kit 라이브러리가 인식 모델을 내려받거나 갱신하기 위해 Google Play 서비스와 통신할 수 있어요."], ["5. 앱 권한", "카메라: 학생증 스캔, 학생증 앞면 확인, 본인 얼굴 확인에만 사용해요. 권한을 허용하지 않으면 학생증 등록 기능을 쓸 수 없어요. 인터넷: 급식과 시간표를 불러오는 데만 사용해요. 앱은 연락처, 위치, 저장 공간, 마이크 같은 다른 권한을 요청하지 않아요."], ["6. 이용자의 권리", "학생과 보호자는 언제든지 앱에서 등록된 정보를 확인하고 삭제할 수 있어요. 정보 삭제는 위 3번처럼 앱 안에서 바로 할 수 있어요. 만 14세 미만 학생의 법정대리인 동의 등은 학교가 정한 절차와 개인정보 보호법 등 관련 법령을 따라요."], ["7. 안전하게 지키기 위한 조치", "저장된 정보는 앱 전용 저장소에 두어 다른 앱이 접근하지 못하게 하고, 외부로 보내는 통로를 만들지 않아요."], ["8. 문의와 변경", "개인정보와 관련한 문의는 중동중학교 행정실(개인정보 보호 담당)로 해 주세요. 이 방침이 바뀌면 앱 업데이트와 함께 이 화면에서 알려 드려요."]];
           b.appendChild(mkCard(null, pv.map(function (x, i) { return { id: 'sid-p-' + i, title: x[0], desc: x[1] }; })));
         }),
+        SidTimetablePage: make('시간표', function (b) { schoolPage(b, 'tt'); }),
+        SidMealPage: make('급식', function (b) { schoolPage(b, 'meal'); }),
         SidScanPage: make('학생증 스캔', function (b) { buildScanBody(b); }),
         SidTipsPage: make('유용한 정보', function (b) {
           b.appendChild(mkCard('학생증 사용 방법', [
@@ -1746,6 +1749,90 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
   function openSettings() { openNative('SidSettingsPage'); }
   function openLicenses() { openNative('SidLicensePage'); }
   function openTips() { openNative('SidTipsPage'); }
+  /* ───── 시간표 / 급식 ───── */
+  var SCH = { seq: 0, cbs: {} };
+  window.__sidSchoolCb = function (id, json) {
+    var cb = SCH.cbs[id]; delete SCH.cbs[id];
+    if (!cb) return;
+    var r = null; try { r = JSON.parse(json); } catch (e) {}
+    cb(r);
+  };
+  function schoolCall(fn, force, cb) {
+    var id = ++SCH.seq; SCH.cbs[id] = cb;
+    try { window.SidNative[fn](id, !!force); } catch (e) { delete SCH.cbs[id]; cb(null); }
+  }
+  function schoolCfg() { try { return JSON.parse(window.SidNative.getSchoolConfig()); } catch (e) { return { grade: 0, cls: 0 }; } }
+  var DOWK = ['일', '월', '화', '수', '목', '금', '토'];
+  var ALLERGY = { 1: '난류', 2: '우유', 3: '메밀', 4: '땅콩', 5: '대두', 6: '밀', 7: '고등어', 8: '게', 9: '새우', 10: '돼지고기', 11: '복숭아', 12: '토마토', 13: '아황산류', 14: '호두', 15: '닭고기', 16: '쇠고기', 17: '오징어', 18: '조개류', 19: '잣' };
+  function dayLabel(y) { var m = +y.slice(4, 6), d = +y.slice(6, 8); return DOWK[new Date(+y.slice(0, 4), m - 1, d).getDay()] + '요일 · ' + m + '월 ' + d + '일'; }
+  // 템플릿 Dialog 안에 목록 카드를 넣어 하나를 고르게 한다 (학년 → 반 두 단계)
+  function chooseFrom(title, labels, done) {
+    ensurePages(function () {                                  // 템플릿 부품(목록/Dialog)이 아직 안 불러와졌을 수 있다
+      var d = null;
+      var box = mkCard(null, labels.map(function (t, i) {
+        return { id: 'sid-pk-' + i, title: t, fn: function () { hideThen(d, function () { done(i + 1); }); } };
+      }));
+      d = openDialog('sid-pick', { title: title, contents: box, cancelable: true, disposable: true, actions: { cancel: { label: '취소', type: 'cancel' } } });
+    });
+  }
+  function pickClass(done) {
+    var grades = [1, 2, 3].map(function (n) { return n + '학년'; });
+    var classes = []; for (var i = 1; i <= 20; i++) classes.push(i + '반');
+    chooseFrom('학년을 선택해 주세요', grades, function (g) {
+      setTimeout(function () {
+        chooseFrom('반을 선택해 주세요', classes, function (k) {
+          try { window.SidNative.setSchoolConfig(g, k); } catch (e) {}
+          if (done) done();
+        });
+      }, 120);
+    });
+  }
+  function openSchoolPage(kind) {
+    var c = schoolCfg();
+    if (kind === 'tt' && !(c.grade > 0 && c.cls > 0)) pickClass(function () { openNative('SidTimetablePage'); });
+    else openNative(kind === 'tt' ? 'SidTimetablePage' : 'SidMealPage');
+  }
+  function schoolPage(b, kind) {
+    var host = document.createElement('div'); host.className = 'sid-sch'; b.appendChild(host);
+    function put(el) { host.appendChild(el); }
+    function load(force) {
+      host.innerHTML = '';
+      if (kind === 'tt') {
+        var c = schoolCfg();
+        put(mkCard(null, [{ id: 'sid-sch-cfg', title: c.grade + '학년 ' + c.cls + '반', desc: '눌러서 바꾸기', fn: function () { pickClass(function () { load(true); }); } }]));
+      } else {
+        put(mkCard(null, [{ id: 'sid-sch-ref', title: '이번 주 급식', desc: '나이스 교육정보 · 눌러서 새로고침', fn: function () { load(true); } }]));
+      }
+      var wait = mkCard(null, [{ id: 'sid-sch-wait', title: '불러오는 중이에요', desc: '잠시만 기다려 주세요' }]); put(wait);
+      schoolCall(kind === 'tt' ? 'loadTimetable' : 'loadMeals', force, function (r) {
+        if (wait.parentNode) wait.parentNode.removeChild(wait);
+        if (!r || !r.ok) {
+          put(mkCard(null, [{ id: 'sid-sch-err', title: '불러오지 못했어요', desc: ((r && r.error) || '인터넷 연결을 확인해 주세요') + '\n눌러서 다시 시도해요', fn: function () { load(true); } }]));
+          return;
+        }
+        var days = r.data.days || [];
+        if (kind === 'tt') {
+          days = days.filter(function (d) { return d.lessons.length; });
+          if (!days.length) { put(mkCard(null, [{ id: 'sid-sch-none', title: '이번 주 시간표가 아직 없어요', desc: '학교에서 시간표를 올리면 보여요' }])); return; }
+          days.forEach(function (d, di) {
+            put(mkCard(dayLabel(d.ymd), d.lessons.map(function (l, li) {
+              return { id: 'sid-tt-' + di + '-' + li, title: l.period + '교시  ' + l.subject, desc: l.teacher || undefined };
+            })));
+          });
+        } else {
+          if (!days.length) { put(mkCard(null, [{ id: 'sid-sch-none', title: '이번 주 급식 정보가 없어요', desc: '학교에서 식단을 올리면 보여요' }])); return; }
+          days.forEach(function (d, di) {
+            put(mkCard(dayLabel(d.ymd), d.meals.map(function (m, mi) {
+              var al = m.allergies && m.allergies.length ? '\n알레르기: ' + m.allergies.map(function (n) { return ALLERGY[n] || n; }).join(', ') : '';
+              return { id: 'sid-ml-' + di + '-' + mi, title: m.type + (m.calories ? ' · ' + m.calories : ''), desc: m.dishes.join('\n') + al };
+            })));
+          });
+        }
+      });
+    }
+    load(false);
+  }
+
 
   // 템플릿 wx-button 생성 (정보 페이지의 '오픈소스 라이선스' 버튼과 같은 부품)
   function btnHtml(label, opt) {
@@ -1809,6 +1896,23 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
   // 변경이 몰려도 한 번만 실행 (디바운스 대신 '대기 중이면 무시')
   function schedulePatch() { if (patchTimer) return; patchTimer = setTimeout(function () { patchTimer = null; patchAll(); }, 120); }
 
+  function dashTileAt(e, path) {
+    var inDash = false;
+    for (var i = 0; i < path.length; i++) { if (path[i] && path[i].tagName === 'VX-DASHBOARD-CARD') { inDash = true; break; } }
+    if (!inDash) return null;
+    var seen = new Set(), id = null;
+    (function deep(root, depth) {
+      if (id || depth > 6 || !root.elementsFromPoint) return;
+      var els = root.elementsFromPoint(e.clientX, e.clientY);
+      for (var k = 0; k < els.length && !id; k++) {
+        var el = els[k];
+        if (seen.has(el)) continue; seen.add(el);
+        if (el.id && el.id.indexOf('dashboard-item-') === 0) { id = el.id; break; }
+        if (el.shadowRoot) deep(el.shadowRoot, depth + 1);
+      }
+    })(document, 0);
+    return id === 'dashboard-item-humidity' ? 'meal' : id === 'dashboard-item-lights' ? 'tt' : null;
+  }
   /* ───── 클릭 가로채기 (원래 기기 제어 동작 대신 학생증 동작) ───── */
   window.addEventListener('click', function (e) {
     var path = e.composedPath ? e.composedPath() : [];
@@ -1818,7 +1922,7 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
       if (!node || !node.matches) continue;
       if (node.matches('[data-sid-act]')) { act = node.getAttribute('data-sid-act'); break; }
       if (node.matches('.now-card-nudge-button')) { act = S.reg ? 'id' : 'scan'; break; }
-      if (node.matches('vx-dashboard-item-card')) { act = node.id === 'dashboard-item-doors-and-windows' ? 'id' : (node.id === 'dashboard-item-door-lock' ? 'scan' : 'soon'); break; }
+      if (node.matches('vx-dashboard-item-card')) { act = node.id === 'dashboard-item-doors-and-windows' ? 'id' : (node.id === 'dashboard-item-door-lock' ? 'scan' : (node.id === 'dashboard-item-humidity' ? 'meal' : (node.id === 'dashboard-item-lights' ? 'tt' : 'soon'))); break; }
       if (node.matches('vx-favorite-group-card vx-scene-card')) {
         var idx = Array.prototype.indexOf.call(document.querySelectorAll('vx-favorite-group-card vx-scene-card'), node);
         act = idx === 0 ? 'id' : 'scan'; break;
@@ -1831,6 +1935,7 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
       if (node.matches('.ux-app-page-information__license')) { act = 'lic'; break; }
       if (node.matches('#sid-id-view .sid-dev-ic.has-photo')) { act = 'photo'; break; }
     }
+    if (!act) { var tile = dashTileAt(e, path); if (tile) act = tile; }
     if (!act) return;
     e.stopPropagation(); e.preventDefault();
     if (act === 'unreg') { if (S.reg) { S.reg = null; S.photo = null; try { if (window.SidNative) window.SidNative.clearRegistration(); } catch (e) {} S.rev++; patchAll(); toast('등록된 학생증을 삭제했어요'); } else toast('등록된 학생증이 없어요'); }
@@ -1839,6 +1944,8 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
     else if (act === 'lic') openLicenses();
     else if (act === 'tips') openTips();
     else if (act === 'priv') openNative('SidPrivacyPage');
+    else if (act === 'meal') openSchoolPage('meal');
+    else if (act === 'tt') openSchoolPage('tt');
     else if (act === 'photo') showPhoto();
     else if (act === 'id') goTab('devices');
     else toast('데모에서는 준비 중이에요');

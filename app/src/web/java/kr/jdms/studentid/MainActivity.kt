@@ -148,6 +148,16 @@ class MainActivity : AppCompatActivity() {
 
     // ───────────────────────── WebView ─────────────────────────
 
+    private val school by lazy { kr.jdms.studentid.school.SchoolRepository(this) }
+
+    private fun <T> schoolReply(id: Int, r: kr.jdms.studentid.school.SchoolRepository.Loaded<T>, toJson: (T) -> org.json.JSONObject) {
+        if (webViewDestroyed) return
+        val body = org.json.JSONObject()
+        val v = r.value
+        if (v != null) body.put("ok", true).put("stale", r.stale).put("data", toJson(v)) else body.put("ok", false).put("error", r.error ?: "")
+        webView.evaluateJavascript("window.__sidSchoolCb($id, ${org.json.JSONObject.quote(body.toString())})", null)
+    }
+
     private fun isDark() =
         (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
 
@@ -439,6 +449,26 @@ class MainActivity : AppCompatActivity() {
         /** 현재 앱의 다크모드 여부. 페이지의 색 모드를 이 값으로 고정한다. */
         @JavascriptInterface
         fun isDark(): Boolean = isDark()
+
+        // ───── 급식 / 시간표 (나이스·컴시간): 결과는 JS 의 window.__sidSchoolCb(id, json) 로 돌려준다 ─────
+        @JavascriptInterface
+        fun getSchoolConfig(): String = org.json.JSONObject().put("grade", school.config.grade).put("cls", school.config.cls).toString()
+
+        @JavascriptInterface
+        fun setSchoolConfig(grade: Int, cls: Int) {
+            school.config.grade = grade
+            school.config.cls = cls
+        }
+
+        @JavascriptInterface
+        fun loadTimetable(id: Int, force: Boolean) {
+            runOnUiThread { school.loadTimetable(force = force) { r -> schoolReply(id, r) { it.toJson() } } }
+        }
+
+        @JavascriptInterface
+        fun loadMeals(id: Int, force: Boolean) {
+            runOnUiThread { school.loadMeals(force = force) { r -> schoolReply(id, r) { it.toJson() } } }
+        }
 
         /** 설정 토글을 바꿀 때 진동 (on = 바뀐 뒤 상태) */
         @JavascriptInterface

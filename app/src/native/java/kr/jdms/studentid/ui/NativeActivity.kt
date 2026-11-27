@@ -150,7 +150,8 @@ fun AppSurface(
         pickK = state.school.config.cls.takeIf { it in 1..20 } ?: 1
         setupThen = then; setupOpen = true
     }
-    fun openSchool(p: Page) { if (state.school.config.isSet) state.open(p) else askClass(p) }
+    // 시간표는 학년·반이 필요하고, 급식은 학교 전체라 바로 연다
+    fun openSchool(p: Page) { if (p == Page.TIMETABLE && !state.school.config.isSet) askClass(p) else state.open(p) }
     // 뒤 화면을 기록해 두는 레이어: 학교 선택 메뉴/토스트의 배경 흐림(backdrop blur)에 쓴다
     val backdropLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
     val backdrop = remember(backdropLayer) { Backdrop(backdropLayer) }

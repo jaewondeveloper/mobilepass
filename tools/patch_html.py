@@ -78,6 +78,95 @@ sub("  function patchAll() {\n    if (document.hidden) return;\n    if (scanOpen
 sub("        if (it.toggle) { PREF[it.toggle] = !PREF[it.toggle]; d.switch = sw(it); c.updateItems(data); }",
     "        if (it.toggle) { PREF[it.toggle] = !PREF[it.toggle]; d.switch = sw(it); c.updateItems(data); try { if (window.SidNative && SidNative.switchHaptic) SidNative.switchHaptic(!!PREF[it.toggle]); } catch (e) {} }")
 
+# ── 시간표 / 급식 (화면은 템플릿 부품, 데이터는 앱이 나이스·컴시간에서 가져온다) ──
+SCHOOL_JS = r"""
+  /* ───── 시간표 / 급식 ───── */
+  var SCH = { seq: 0, cbs: {} };
+  window.__sidSchoolCb = function (id, json) {
+    var cb = SCH.cbs[id]; delete SCH.cbs[id];
+    if (!cb) return;
+    var r = null; try { r = JSON.parse(json); } catch (e) {}
+    cb(r);
+  };
+  function schoolCall(fn, force, cb) {
+    var id = ++SCH.seq; SCH.cbs[id] = cb;
+    try { window.SidNative[fn](id, !!force); } catch (e) { delete SCH.cbs[id]; cb(null); }
+  }
+  function schoolCfg() { try { return JSON.parse(window.SidNative.getSchoolConfig()); } catch (e) { return { grade: 0, cls: 0 }; } }
+  var DOWK = ['일', '월', '화', '수', '목', '금', '토'];
+  var ALLERGY = { 1: '난류', 2: '우유', 3: '메밀', 4: '땅콩', 5: '대두', 6: '밀', 7: '고등어', 8: '게', 9: '새우', 10: '돼지고기', 11: '복숭아', 12: '토마토', 13: '아황산류', 14: '호두', 15: '닭고기', 16: '쇠고기', 17: '오징어', 18: '조개류', 19: '잣' };
+  function dayLabel(y) { var m = +y.slice(4, 6), d = +y.slice(6, 8); return DOWK[new Date(+y.slice(0, 4), m - 1, d).getDay()] + '요일 · ' + m + '월 ' + d + '일'; }
+  // 템플릿 Dialog 안에 목록 카드를 넣어 하나를 고르게 한다 (학년 → 반 두 단계)
+  function chooseFrom(title, labels, done) {
+    ensurePages(function () {                                  // 템플릿 부품(목록/Dialog)이 아직 안 불러와졌을 수 있다
+      var d = null;
+      var box = mkCard(null, labels.map(function (t, i) {
+        return { id: 'sid-pk-' + i, title: t, fn: function () { hideThen(d, function () { done(i + 1); }); } };
+      }));
+      d = openDialog('sid-pick', { title: title, contents: box, cancelable: true, disposable: true, actions: { cancel: { label: '취소', type: 'cancel' } } });
+    });
+  }
+  function pickClass(done) {
+    var grades = [1, 2, 3].map(function (n) { return n + '학년'; });
+    var classes = []; for (var i = 1; i <= 20; i++) classes.push(i + '반');
+    chooseFrom('학년을 선택해 주세요', grades, function (g) {
+      setTimeout(function () {
+        chooseFrom('반을 선택해 주세요', classes, function (k) {
+          try { window.SidNative.setSchoolConfig(g, k); } catch (e) {}
+          if (done) done();
+        });
+      }, 120);
+    });
+  }
+  function openSchoolPage(kind) {
+    var c = schoolCfg();
+    if (kind === 'tt' && !(c.grade > 0 && c.cls > 0)) pickClass(function () { openNative('SidTimetablePage'); });
+    else openNative(kind === 'tt' ? 'SidTimetablePage' : 'SidMealPage');
+  }
+  function schoolPage(b, kind) {
+    var host = document.createElement('div'); host.className = 'sid-sch'; b.appendChild(host);
+    function put(el) { host.appendChild(el); }
+    function load(force) {
+      host.innerHTML = '';
+      if (kind === 'tt') {
+        var c = schoolCfg();
+        put(mkCard(null, [{ id: 'sid-sch-cfg', title: c.grade + '학년 ' + c.cls + '반', desc: '눌러서 바꾸기', fn: function () { pickClass(function () { load(true); }); } }]));
+      } else {
+        put(mkCard(null, [{ id: 'sid-sch-ref', title: '이번 주 급식', desc: '나이스 교육정보 · 눌러서 새로고침', fn: function () { load(true); } }]));
+      }
+      var wait = mkCard(null, [{ id: 'sid-sch-wait', title: '불러오는 중이에요', desc: '잠시만 기다려 주세요' }]); put(wait);
+      schoolCall(kind === 'tt' ? 'loadTimetable' : 'loadMeals', force, function (r) {
+        if (wait.parentNode) wait.parentNode.removeChild(wait);
+        if (!r || !r.ok) {
+          put(mkCard(null, [{ id: 'sid-sch-err', title: '불러오지 못했어요', desc: ((r && r.error) || '인터넷 연결을 확인해 주세요') + '\n눌러서 다시 시도해요', fn: function () { load(true); } }]));
+          return;
+        }
+        var days = r.data.days || [];
+        if (kind === 'tt') {
+          days = days.filter(function (d) { return d.lessons.length; });
+          if (!days.length) { put(mkCard(null, [{ id: 'sid-sch-none', title: '이번 주 시간표가 아직 없어요', desc: '학교에서 시간표를 올리면 보여요' }])); return; }
+          days.forEach(function (d, di) {
+            put(mkCard(dayLabel(d.ymd), d.lessons.map(function (l, li) {
+              return { id: 'sid-tt-' + di + '-' + li, title: l.period + '교시  ' + l.subject, desc: l.teacher || undefined };
+            })));
+          });
+        } else {
+          if (!days.length) { put(mkCard(null, [{ id: 'sid-sch-none', title: '이번 주 급식 정보가 없어요', desc: '학교에서 식단을 올리면 보여요' }])); return; }
+          days.forEach(function (d, di) {
+            put(mkCard(dayLabel(d.ymd), d.meals.map(function (m, mi) {
+              var al = m.allergies && m.allergies.length ? '\n알레르기: ' + m.allergies.map(function (n) { return ALLERGY[n] || n; }).join(', ') : '';
+              return { id: 'sid-ml-' + di + '-' + mi, title: m.type + (m.calories ? ' · ' + m.calories : ''), desc: m.dishes.join('\n') + al };
+            })));
+          });
+        }
+      });
+    }
+    load(false);
+  }
+"""
+sub("  function openTips() { openNative('SidTipsPage'); }", "  function openTips() { openNative('SidTipsPage'); }" + SCHOOL_JS)
+sub("        else if (it.act === 'unreg') doUnreg();\n      };", "        else if (it.act === 'unreg') doUnreg();\n        else if (typeof it.fn === 'function') it.fn();\n      };")
+
 # 오픈소스 라이선스 / 개인정보처리방침: 문구는 tools/legal.py (네이티브 앱과 공용)
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import json
@@ -108,6 +197,8 @@ LIC_JS = (
     "          var pv = " + json.dumps(privacy, ensure_ascii=False) + ";\n"
     "          b.appendChild(mkCard(null, pv.map(function (x, i) { return { id: 'sid-p-' + i, title: x[0], desc: x[1] }; })));\n"
     "        }),\n"
+    "        SidTimetablePage: make('시간표', function (b) { schoolPage(b, 'tt'); }),\n"
+    "        SidMealPage: make('급식', function (b) { schoolPage(b, 'meal'); }),\n"
     "        SidScanPage:"
 )
 html = lic_re.sub(lambda m: LIC_JS, html)
@@ -120,9 +211,35 @@ sub("      if (node.matches('.ux-app-page-information__license')) { act = 'lic';
 sub("    else if (act === 'tips') openTips();",
     "    else if (act === 'tips') openTips();\n    else if (act === 'priv') openNative('SidPrivacyPage');")
 sub(".sid-pg .sid-danger-title { color: #e5392d !important; }",
-    ".sid-pg .sid-danger-title { color: #e5392d !important; } .sid-pg wx-list-item span { white-space: pre-line !important; }")
+    ".sid-pg .sid-danger-title { color: #e5392d !important; } .sid-pg wx-list-item span { white-space: pre-line !important; } .sid-sch .sid-card-wrap { margin-bottom: 18px; }")
 sub(".ux-app-page-information__license { display: flex; justify-content: center; }",
     ".ux-app-page-information__license { display: flex; justify-content: center; } .ux-app-page-information__bottom-wrapper:has(.sid-privacy-link) { flex-direction: column !important; align-items: center !important; } .sid-privacy-link { margin-bottom: 12px; }")
+sub("      if (node.matches('.sid-privacy-link')) { act = 'priv'; break; }", "      if (node.matches('.sid-privacy-link')) { act = 'priv'; break; }")
+sub("act = node.id === 'dashboard-item-doors-and-windows' ? 'id' : (node.id === 'dashboard-item-door-lock' ? 'scan' : 'soon'); break; }",
+    "act = node.id === 'dashboard-item-doors-and-windows' ? 'id' : (node.id === 'dashboard-item-door-lock' ? 'scan' : (node.id === 'dashboard-item-humidity' ? 'meal' : (node.id === 'dashboard-item-lights' ? 'tt' : 'soon'))); break; }")
+# 대시보드 칸은 닫힌 그림자 영역 안에 있어 클릭 경로에 잡히지 않는다 → 눌린 자리의 요소를 직접 찾아 판단한다
+sub("    if (!act) return;\n    e.stopPropagation(); e.preventDefault();",
+    "    if (!act) { var tile = dashTileAt(e, path); if (tile) act = tile; }\n    if (!act) return;\n    e.stopPropagation(); e.preventDefault();")
+sub("  /* ───── 클릭 가로채기 (원래 기기 제어 동작 대신 학생증 동작) ───── */",
+    """  function dashTileAt(e, path) {
+    var inDash = false;
+    for (var i = 0; i < path.length; i++) { if (path[i] && path[i].tagName === 'VX-DASHBOARD-CARD') { inDash = true; break; } }
+    if (!inDash) return null;
+    var seen = new Set(), id = null;
+    (function deep(root, depth) {
+      if (id || depth > 6 || !root.elementsFromPoint) return;
+      var els = root.elementsFromPoint(e.clientX, e.clientY);
+      for (var k = 0; k < els.length && !id; k++) {
+        var el = els[k];
+        if (seen.has(el)) continue; seen.add(el);
+        if (el.id && el.id.indexOf('dashboard-item-') === 0) { id = el.id; break; }
+        if (el.shadowRoot) deep(el.shadowRoot, depth + 1);
+      }
+    })(document, 0);
+    return id === 'dashboard-item-humidity' ? 'meal' : id === 'dashboard-item-lights' ? 'tt' : null;
+  }
+  /* ───── 클릭 가로채기 (원래 기기 제어 동작 대신 학생증 동작) ───── */""")
+sub("    else if (act === 'priv') openNative('SidPrivacyPage');", "    else if (act === 'priv') openNative('SidPrivacyPage');\n    else if (act === 'meal') openSchoolPage('meal');\n    else if (act === 'tt') openSchoolPage('tt');")
 
 # ── 3) 스캔 페이지 + 확인 모달 (템플릿 부품) ──
 SCAN_JS = r"""
