@@ -11,7 +11,7 @@
 | 화면 | HTML 템플릿을 WebView 로 표시 (스타일/동작이 원본과 100% 동일) | Jetpack Compose 로 직접 그림 (원본을 렌더링해 측정한 색·크기·반지름·에셋 사용) |
 | 장점 | 원본 HTML 과 완전히 같은 모습, HTML 만 바꾸면 반영 | 부드러움(웹 엔진·25MB 파싱 없음), 시작이 빠름, 메모리 적음 |
 | 단점 | 시작/탭 전환이 느릴 수 있음 (템플릿이 무거움) | 화면을 다시 구현한 것이라 미세한 차이가 있을 수 있고, HTML 이 바뀌면 코드도 맞춰야 함 |
-| 앱 ID | `kr.jdms.studentid` | `kr.jdms.studentid.native` (둘을 같이 설치해 비교 가능) |
+| 앱 ID | `com.corerepublix.jdms.android` | `com.corerepublix.jdms.android.native` (둘을 같이 설치해 비교 가능) |
 
 **HTML 의 스타일·기능을 그대로 네이티브로 옮겨 주는 언어/도구는 없습니다.** 이 HTML 은 Lit 웹 컴포넌트 + lottie + 커스텀 애니메이션을
 25MB 로 묶은 것이라 자동 변환이 불가능하고, 네이티브로 가려면 화면을 다시 만들어야 합니다. 안드로이드에서 가장 가까운 방법이 Kotlin + Jetpack Compose 이며,
