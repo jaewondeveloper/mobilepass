@@ -51,7 +51,7 @@ fun StartGate(onStart: () -> Unit, onDemo: () -> Unit) {
         PillButton(
             "시작하기", onClick = onStart,
             modifier = Modifier.align(Alignment.BottomCenter).width(196.dp).padding(bottom = 24.dp + bottom),
-            height = 38.dp, bg = c.accent, fg = Color(0xFFFCFCFF), fontSize = 14,
+            height = 48.dp, bg = c.accent, fg = Color(0xFFFCFCFF), fontSize = 16,
         )
     }
 }

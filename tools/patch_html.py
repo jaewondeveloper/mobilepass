@@ -295,13 +295,13 @@ GATE_JS = r"""
       g.innerHTML =
         '<div class="sid-gate-title">학생증</div>' +
         '<div class="sid-gate-corner" data-sid-act="gate-demo"></div>' +
-        '<wx-button class="wx-button wx-recoil" size="md" shape="round" type="normal" background label="" ' +
+        '<wx-button class="wx-button wx-recoil" size="lg" shape="round" type="normal" background label="" ' +
         'ripple-shape="fit" ripple-shape-hint="regular" press-style="button" recoil="button" ' +
         'data-helpers="pointer-feedback clickable" data-pointer-feedback clickable tabindex="0" role="button" ' +
         'data-sid-act="gate-start" ' +
         'style="position:absolute;left:50%;transform:translateX(-50%);width:196px;bottom:calc(env(safe-area-inset-bottom, 0px) + 24px);' +
         'background:var(--color-accents-blue,#387AFF)!important;">' +
-        '<div class="now-card-button-content" style="justify-content:center;width:100%;"><span style="color:#FCFCFF;font-size:14px;font-weight:600;">시작하기</span></div>' +
+        '<div class="now-card-button-content" style="justify-content:center;width:100%;"><span style="color:#FCFCFF;font-size:16px;font-weight:600;">시작하기</span></div>' +
         '</wx-button>';
       document.body.appendChild(g);
     }
