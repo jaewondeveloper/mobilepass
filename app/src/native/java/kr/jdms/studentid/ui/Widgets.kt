@@ -115,7 +115,7 @@ fun TabBar(selected: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier
     ) {
         items.forEach { (tab, icon, label) ->
             val on = tab == selected
-            val tint by animateColorAsState(if (on) c.text else c.tabIdle, tween(100, easing = LinearEasing), label = "tabTint")
+            val tint by animateColorAsState(if (on) (if (c.dark) Color.White else c.text) else c.tabIdle, tween(100, easing = LinearEasing), label = "tabTint")
             Column(
                 Modifier.recoilClickable(scale = 0.965f) { onSelect(tab) }
                     .width(80.dp).height(48.dp).clip(RoundedCornerShape(24.dp))

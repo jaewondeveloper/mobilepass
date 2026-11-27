@@ -56,7 +56,7 @@ val DarkColors = AppColors(
     pageBg = Color(0xFF010102), card = Color(0xFF17171A), tile = Color(0xFF222225),
     text = Color(0xFFFAFAFA), textSub = Color(0x99FAFAFA), textMuted = Color(0x73FAFAFA), textBody = Color(0xFFD9D9DC),
     divider = Color(0x1AFFFFFF), accent = Color(0xFF3E7DFF), accentText = Color(0xFF7FA6FF),
-    tabBar = Color(0xB5404040), tabSelected = Color(0x1FFFFFFF), tabIdle = Color(0xFF9A9A9D),
+    tabBar = Color(0xFF252527), tabSelected = Color(0x1AFFFFFF), tabIdle = Color(0xFFEBEBEB),
     pill = Color(0xFF3A3A3D), dialog = Color(0xFF3A3A3C), scrim = Color(0x99000000),
     glass = Color(0x4D1C1C1C), glassBorder = Color(0xFF222222), switchOff = Color(0xFF5A5A5D),
     glassGlow = Color(0xB30E0E0E), btnBorder = Color(0xFF3A3A3D), btnBg = Color(0xFF010102),

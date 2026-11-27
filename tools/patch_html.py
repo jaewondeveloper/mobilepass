@@ -351,7 +351,7 @@ HEAD_PATCH = (
     "window.matchMedia=function(q){return /prefers-color-scheme\\s*:\\s*dark/.test(q)?mql(q):real(q)};"
     "window.__sidSetDark=function(d){d=!!d;if(d===dark)return;dark=d;R.setAttribute('data-sid-dark',d?'1':'0');"
     "ls.slice().forEach(function(f){try{f({matches:d,media:'(prefers-color-scheme: dark)'})}catch(e){}})};}}catch(e){}</script>\n"
-    "<style id=\"sid-dark\">html[data-color-scheme=\"dark\"] px-window-glass.gradient-bg{background-image:none!important;background-color:#010102!important}</style>\n"
+    "<style id=\"sid-dark\">html[data-color-scheme=\"dark\"] px-window-glass.gradient-bg{background-image:none!important;background-color:#010102!important}html[data-color-scheme=\"dark\"] wx-tab-control{background-color:#252527!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}html[data-color-scheme=\"dark\"] wx-tab-control-item{color:#EBEBEB!important}html[data-color-scheme=\"dark\"] wx-tab-control[selected=home] wx-tab-control-item#home,html[data-color-scheme=\"dark\"] wx-tab-control[selected=devices] wx-tab-control-item#devices,html[data-color-scheme=\"dark\"] wx-tab-control[selected=menu] wx-tab-control-item#menu{color:#FFFFFF!important}</style>\n"
 )
 sub('<style id="sid-early">', HEAD_PATCH + '<style id="sid-early">')
 sub('html:not(.sid-go){background:#f1f1f3!important}', 'html:not(.sid-go){background:#f1f1f3!important}html[data-sid-dark="1"]:not(.sid-go){background:#010102!important}')
