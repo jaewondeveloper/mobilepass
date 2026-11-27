@@ -176,13 +176,15 @@ fun ToastHost(state: ToastState, bottomInset: Dp) {
                     scaleX = sc; scaleY = sc
                     translationY = with(density) { (80.dp * (1f - rise)).toPx() }
                 }
+                // 모양(둥근 배경/클립/흐림)이 '늘어나는 너비' 바깥에 있어야 작은 원에서 시작해 옆으로 늘어난다.
+                // (layout 보다 안쪽에 두면 배경이 처음부터 전체 너비로 그려진다)
+                .clip(RoundedCornerShape(22.dp)).backdropBlur(14.dp).background(Color(0xB81E2026))
                 .layout { m, c ->
                     val p = m.measure(c.copy(minWidth = 0))
                     val d = 44.dp.roundToPx()
                     val w = (d + (p.width - d) * grow).toInt().coerceAtLeast(d)
                     layout(w, p.height) { p.placeRelative((w - p.width) / 2, 0) }
-                }
-                .clip(RoundedCornerShape(22.dp)).backdropBlur(14.dp).background(Color(0xB81E2026)),
+                },
             contentAlignment = Alignment.Center,
         ) {
             Text(

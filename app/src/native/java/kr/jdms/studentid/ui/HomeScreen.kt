@@ -74,7 +74,9 @@ fun SchoolMenu(open: Boolean, top: androidx.compose.ui.unit.Dp, onDismiss: () ->
     }
     if (!shown) return
     Box(Modifier.fillMaxSize().padding(top = top).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onDismiss() }) {
-        val bg = (if (c.dark) Color(0xFF2A2A2D) else Color(0xFFFCFCFF)).copy(alpha = 0.8f)
+        // 흐림이 되는 기기(안드로이드 12+)에서는 원본처럼 80%, 안 되는 기기에서는 뒤 글자가 비치지 않게 거의 불투명하게
+        val blurOk = LocalBackdrop.current != null && android.os.Build.VERSION.SDK_INT >= 31
+        val bg = (if (c.dark) Color(0xFF2A2A2D) else Color(0xFFFCFCFF)).copy(alpha = if (blurOk) 0.8f else 0.96f)
         val sub = c.text.copy(alpha = 0.4f)
         Box(
             Modifier.align(Alignment.TopStart).offset(10.dp, 4.dp).size(186.dp, 167.dp)
