@@ -23,7 +23,7 @@ private fun PageFrame(title: String, onBack: () -> Unit, content: @Composable ()
     // 머리글은 스크롤 위에 떠 있고(내용이 그 뒤로 지나감), 스크롤되면 뒤로가기 버튼 뒤에 유리 배경이 생긴다
     val sc = rememberScrollState()
     Box(Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().verticalScroll(sc).padding(top = 68.dp, bottom = 24.dp)) { content() }
+        Column(Modifier.fillMaxSize().scrollEdgeFade(sc).verticalScroll(sc).padding(top = 68.dp, bottom = 24.dp)) { content() }
         BackHeader(title, onBack, glass = sc.value > 0)
     }
 }

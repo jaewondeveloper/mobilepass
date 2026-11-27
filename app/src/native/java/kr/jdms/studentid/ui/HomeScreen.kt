@@ -115,7 +115,7 @@ fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon:
     val c = LocalColors.current
     val sc = rememberScrollState()
     Box(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().verticalScroll(sc)) {
+        Box(Modifier.fillMaxSize().scrollEdgeFade(sc).verticalScroll(sc)) {
             Box(Modifier.fillMaxWidth().height(660.dp)) {
 
                 // '지금' 카드: (10,74) 373x147, 둥근 30

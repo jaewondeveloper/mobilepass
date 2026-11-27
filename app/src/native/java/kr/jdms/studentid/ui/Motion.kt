@@ -269,3 +269,42 @@ fun Modifier.backdropBlur(radius: androidx.compose.ui.unit.Dp): Modifier {
         drawLayer(layer)
     }
 }
+
+// ───────────────────────── 스크롤 가장자리 흐려짐 (원본: 스크롤 컨테이너의 mask-image) ─────────────────────────
+// 스크롤된 내용은 화면 맨 위/아래에서 뚝 끊기지 않고 서서히 사라진다.
+//  - 위: 위에서 아래로 157 높이, 가장자리 투명도 0.04 → 안쪽 1 (맨 위로 돌아오면 사라짐)
+//  - 아래: 아래에서 위로 92 높이 (맨 아래까지 가면 사라짐)
+
+private val TopFadeStops = floatArrayOf(0f, 10.06f, 19.27f, 27.69f, 35.36f, 42.34f, 48.69f, 54.45f, 59.68f, 64.43f, 68.75f, 72.7f, 76.32f, 79.67f, 82.81f, 85.78f, 88.64f, 91.44f, 94.23f, 97.07f, 100f)
+private val TopFadeAlpha = floatArrayOf(1f, .992f, .976f, .945f, .91f, .863f, .81f, .753f, .69f, .627f, .56f, .494f, .43f, .37f, .31f, .26f, .21f, .173f, .145f, .125f, .04f)
+private val BottomFadeStops = floatArrayOf(0f, 6.65f, 12.84f, 18.62f, 24.03f, 29.13f, 33.95f, 38.55f, 42.98f, 47.28f, 51.5f, 55.69f, 59.9f, 64.18f, 68.57f, 73.13f, 77.89f, 82.91f, 88.24f, 93.92f, 100f)
+private val BottomFadeAlpha = floatArrayOf(1f, .992f, .976f, .945f, .91f, .863f, .81f, .753f, .69f, .627f, .56f, .494f, .43f, .37f, .31f, .26f, .21f, .173f, .145f, .125f, .04f)
+
+/** 스크롤 상자(verticalScroll 보다 바깥에 붙인다)의 위/아래 가장자리를 원본처럼 서서히 흐리게 한다. */
+fun Modifier.scrollEdgeFade(sc: androidx.compose.foundation.ScrollState): Modifier = this
+    .graphicsLayer { compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        val topOn = sc.value > 0
+        val bottomOn = sc.value < sc.maxValue
+        if (topOn) {
+            val h = minOf(157.dp.toPx(), size.height)
+            // 위로 갈수록 투명: 투명도 목록은 '아래(안쪽)에서 위(가장자리)' 순서
+            val stops = Array(TopFadeStops.size) { i -> (1f - TopFadeStops[TopFadeStops.size - 1 - i] / 100f) to Color.Black.copy(alpha = TopFadeAlpha[TopFadeStops.size - 1 - i]) }
+            drawRect(
+                androidx.compose.ui.graphics.Brush.verticalGradient(colorStops = stops, startY = 0f, endY = h),
+                topLeft = androidx.compose.ui.geometry.Offset(0f, 0f), size = androidx.compose.ui.geometry.Size(size.width, h),
+                blendMode = androidx.compose.ui.graphics.BlendMode.DstIn,
+            )
+        }
+        if (bottomOn) {
+            val h = minOf(92.dp.toPx(), size.height)
+            val y0 = size.height - h
+            val stops = Array(BottomFadeStops.size) { i -> (BottomFadeStops[i] / 100f) to Color.Black.copy(alpha = BottomFadeAlpha[i]) }
+            drawRect(
+                androidx.compose.ui.graphics.Brush.verticalGradient(colorStops = stops, startY = y0, endY = size.height),
+                topLeft = androidx.compose.ui.geometry.Offset(0f, y0), size = androidx.compose.ui.geometry.Size(size.width, h),
+                blendMode = androidx.compose.ui.graphics.BlendMode.DstIn,
+            )
+        }
+    }

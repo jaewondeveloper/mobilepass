@@ -38,7 +38,7 @@ fun IdTab(state: AppState, onScan: () -> Unit, onPhoto: () -> Unit, onTitle: () 
     val c = LocalColors.current
     val sc = rememberScrollState()
     Box(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().verticalScroll(sc)) {
+        Box(Modifier.fillMaxSize().scrollEdgeFade(sc).verticalScroll(sc)) {
             Box(Modifier.fillMaxWidth().height(660.dp)) {
                 PT("모바일 학생증", 22f, 86f, 14, c.pageLabel, 500)
 

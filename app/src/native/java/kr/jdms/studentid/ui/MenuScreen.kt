@@ -25,7 +25,7 @@ fun MenuTab(onReRegister: () -> Unit, onTips: () -> Unit, onInfo: () -> Unit, on
     val c = LocalColors.current
     val sc = rememberScrollState()
     Box(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().verticalScroll(sc)) {
+        Box(Modifier.fillMaxSize().scrollEdgeFade(sc).verticalScroll(sc)) {
         Box(Modifier.fillMaxWidth().height(660.dp)) {
 
             ImageCard(68f, "학생증 (다시) 등록", "학생증을 스캔해서 등록해요.", R.drawable.img_menu_flag, onReRegister)
