@@ -9,9 +9,9 @@
     <string name="hint_need_barcode">바코드가 잘 보이도록 카드를 맞춰주세요</string>
     <string name="hint_need_name">이름이 잘 보이도록 카드를 맞춰주세요</string>
     <string name="hint_need_school">중동중학교 학생증 앞면이 보이도록 맞춰주세요</string>
-    <string name="hint_need_back">뒷면 아래쪽 '중동중학교장'·주소·전화번호와 유효기간이 모두 보이게 맞춰주세요</string>
+    <string name="hint_need_back">뒷면 아래쪽 \'중동중학교장\'·주소·전화번호와 유효기간이 모두 보이게 맞춰주세요</string>
     <string name="err_expired">유효기간(%1$s)이 지난 학생증이에요</string>
-    <string name="face_front_school">앞면 아래쪽 '중동중학교' 글자가 보이도록 맞춰주세요</string>
+    <string name="face_front_school">앞면 아래쪽 \'중동중학교\' 글자가 보이도록 맞춰주세요</string>
     <string name="face_front_name">사진 아래 이름이 뒷면 이름과 같은지 확인 중이에요. 이름이 잘 보이게 맞춰주세요</string>
     <string name="hint_lost">인식이 어려워요. 카드를 평평하게 들고 거리를 조절해 주세요</string>
 
