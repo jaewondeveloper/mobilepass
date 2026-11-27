@@ -88,6 +88,8 @@ class NativeActivity : AppCompatActivity() {
             }
             AppTheme(dark) { Root() }
         }
+        // 처음 켤 때만: 로고가 커지며 나타나고 빛 반사가 훑고 지나간 뒤 앱 화면으로 (setContent 뒤에 얹어야 가려지지 않는다)
+        if (savedInstanceState == null) kr.jdms.studentid.SplashView.show(this)
     }
 
     override fun onDestroy() {

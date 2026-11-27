@@ -2,6 +2,7 @@
 <resources>
     <!-- HTML 앱의 배경색과 동일 (세이프 영역이 웹 화면과 이어져 보이도록) -->
     <color name="app_bg">#F1F1F3</color>
+    <color name="splash_bg">#FFFFFF</color>
     <color name="accent">#387AFF</color>
     <color name="success">#34A853</color>
     <color name="sheet_bg">#FCFCFF</color>

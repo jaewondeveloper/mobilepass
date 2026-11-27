@@ -168,7 +168,7 @@ fun BackHeader(title: String, onBack: () -> Unit, glass: Boolean = false) {
 @Composable
 fun ListCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     val c = LocalColors.current
-    Column(modifier.fillMaxWidth().padding(horizontal = 10.dp).clip(RoundedCornerShape(22.dp)).background(c.card)) { content() }
+    Column(modifier.fillMaxWidth().padding(horizontal = 10.dp).clip(SmoothRoundedShape(22.dp)).background(c.card)) { content() }
 }
 
 /**

@@ -100,6 +100,21 @@ class MainActivity : AppCompatActivity() {
         setContentView(root)
 
         createWebView()
+        // 처음 켤 때만 시작 화면: 웹 화면이 그려질 준비가 될 때까지 잡아 둔다 (최대 6초)
+        if (savedInstanceState == null) {
+            var pageReady = false
+            val handler = android.os.Handler(android.os.Looper.getMainLooper())
+            val poll = object : Runnable {
+                override fun run() {
+                    if (webViewDestroyed) return
+                    webView.evaluateJavascript("document.documentElement.classList.contains('sid-go')") { r ->
+                        if (r == "true") pageReady = true else handler.postDelayed(this, 100)
+                    }
+                }
+            }
+            handler.post(poll)
+            SplashView.show(this) { pageReady }
+        }
         createPreview()
 
         // 시스템 바 높이를 읽어 웹(vhome)에 전달. 첫 값을 알게 된 뒤에 페이지를 로드해서 첫 화면부터 정확한 여백.
