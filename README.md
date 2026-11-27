@@ -83,7 +83,7 @@ python3 tools/patch_html.py 새원본.html     # → app/src/web/assets/index.ht
 Android Studio (Ladybug 이상)에서 폴더를 열고 ▶ 실행, 또는:
 
 ```
-./gradlew testDebugUnitTest      # 인식 로직 단위 테스트
+./gradlew testWebDebugUnitTest testNativeDebugUnitTest   # 인식 로직 단위 테스트
 ./gradlew assembleDebug          # app/build/outputs/apk/debug/app-debug.apk
 ```
 
