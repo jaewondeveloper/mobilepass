@@ -21,6 +21,14 @@ jobs:
       - name: Unit tests
         run: ./gradlew --no-daemon testWebDebugUnitTest testNativeDebugUnitTest
 
+      - name: 글자 위치 JSON 출력 (로그에서 원본 HTML 수치와 비교)
+        if: always()
+        run: |
+          for f in app/build/screenshots/*.json; do
+            [ -f "$f" ] || continue
+            echo "@@JSON $(basename "$f" .json) $(tr -d '\n' < "$f")"
+          done
+
       - name: Upload native screenshots (원본 HTML 과 비교용)
         if: always()
         uses: actions/upload-artifact@v4
