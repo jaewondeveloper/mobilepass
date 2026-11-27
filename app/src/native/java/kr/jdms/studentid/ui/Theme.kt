@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.TextUnitType
 
 /**
@@ -73,8 +74,19 @@ fun AppTheme(dark: Boolean, content: @Composable () -> Unit) {
         LocalColors provides colors,
         LocalDensity provides Density(d.density, fontScale = 1f),
         LocalIndication provides ripple(color = colors.text),      // 카드/타일을 누를 때의 물결 (wx-ripple)
-        content = content,
-    )
+    ) {
+        // 원본 HTML 의 line-height:normal 과 같은 줄 높이(≈1.2배)를 글자 크기와 상관없이 고정해, 글자 상자 높이/위치가 기기 글꼴과 무관하게 같도록 한다
+        androidx.compose.material3.ProvideTextStyle(
+            androidx.compose.ui.text.TextStyle(
+                lineHeight = 1.2f.em,
+                lineHeightStyle = androidx.compose.ui.text.style.LineHeightStyle(
+                    androidx.compose.ui.text.style.LineHeightStyle.Alignment.Center,
+                    androidx.compose.ui.text.style.LineHeightStyle.Trim.None,
+                ),
+            ),
+            content,
+        )
+    }
 }
 
 val Int.fsp: TextUnit get() = TextUnit(this.toFloat(), TextUnitType.Sp)

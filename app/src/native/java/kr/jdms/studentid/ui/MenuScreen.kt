@@ -60,7 +60,7 @@ private fun ImageCard(title: String, desc: String, image: Int, onClick: () -> Un
         Column(Modifier.weight(1f).padding(end = 8.dp)) {
             Text(title, color = c.text, fontSize = 20.fsp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(5.dp))
-            Text(desc, color = c.textBody, fontSize = 15.fsp)
+            Text(desc, color = c.textBody, fontSize = 15.fsp, lineHeight = 19.fsp)
         }
         Image(painterResource(image), null, Modifier.width(82.dp))
     }

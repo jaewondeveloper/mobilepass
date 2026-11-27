@@ -93,9 +93,9 @@ fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon:
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text("중동중학교", color = c.text, fontSize = 12.fsp, fontWeight = FontWeight.SemiBold)
-                Text("모바일 학생증", color = c.text, fontSize = 12.fsp, fontWeight = FontWeight.SemiBold)
-                Text(state.name ?: "미등록", color = c.textMuted, fontSize = 12.fsp, fontWeight = FontWeight.SemiBold)
+                Text("중동중학교", color = c.text, fontSize = 12.fsp, lineHeight = 16.fsp, fontWeight = FontWeight.SemiBold)
+                Text("모바일 학생증", color = c.text, fontSize = 12.fsp, lineHeight = 16.fsp, fontWeight = FontWeight.SemiBold)
+                Text(state.name ?: "미등록", color = c.textMuted, fontSize = 12.fsp, lineHeight = 16.fsp, fontWeight = FontWeight.SemiBold)
             }
             AvatarBox(state, Modifier)
         }

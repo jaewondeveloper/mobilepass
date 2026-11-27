@@ -166,8 +166,8 @@ fun ListRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text(title, color = c.text, fontSize = 17.fsp)
-                if (desc != null) Text(desc, color = if (descAccent) c.accentText else c.textSub, fontSize = if (descAccent) 12.fsp else 14.fsp)
+                Text(title, color = c.text, fontSize = 17.fsp, lineHeight = 23.fsp)
+                if (desc != null) Text(desc, color = if (descAccent) c.accentText else c.textSub, fontSize = if (descAccent) 12.fsp else 14.fsp, lineHeight = if (descAccent) 16.fsp else 19.fsp)
             }
             trailing?.invoke()
         }

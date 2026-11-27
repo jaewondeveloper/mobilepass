@@ -38,7 +38,7 @@ fun IdTab(state: AppState, onScan: () -> Unit, onPhoto: () -> Unit) {
     val c = LocalColors.current
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 96.dp)) {
         TitleBar()
-        Text("모바일 학생증", color = c.textMuted, fontSize = 14.fsp, modifier = Modifier.padding(start = 22.dp, top = 6.dp, bottom = 10.dp))
+        Text("모바일 학생증", color = c.textMuted, fontSize = 14.fsp, modifier = Modifier.padding(start = 22.dp, top = 20.dp, bottom = 10.dp))
 
         if (!state.registered) {
             Column(Modifier.padding(horizontal = 10.dp).fillMaxWidth().glass(c).padding(start = 19.dp, top = 16.dp, end = 19.dp, bottom = 20.dp)) {
@@ -55,9 +55,9 @@ fun IdTab(state: AppState, onScan: () -> Unit, onPhoto: () -> Unit) {
         Column(Modifier.padding(horizontal = 10.dp).fillMaxWidth().clip(CardShape).background(c.card)) {
             Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 12.dp)) {
                 Column(Modifier.weight(1f).padding(top = 4.dp)) {
-                    Text("중동중학교", color = Color(0xFF010102), fontSize = 12.fsp, fontWeight = FontWeight.SemiBold)
-                    Text("모바일 학생증", color = Color(0xFF010102), fontSize = 12.fsp, fontWeight = FontWeight.SemiBold)
-                    Text(state.name ?: "", color = Color(0x73010102), fontSize = 12.fsp, fontWeight = FontWeight.SemiBold)
+                    Text("중동중학교", color = Color(0xFF010102), fontSize = 12.fsp, lineHeight = 16.fsp, fontWeight = FontWeight.SemiBold)
+                    Text("모바일 학생증", color = Color(0xFF010102), fontSize = 12.fsp, lineHeight = 16.fsp, fontWeight = FontWeight.SemiBold)
+                    Text(state.name ?: "", color = Color(0x73010102), fontSize = 12.fsp, lineHeight = 16.fsp, fontWeight = FontWeight.SemiBold)
                 }
                 AvatarBox(state, Modifier, onClick = onPhoto)       // 사진을 누르면 확대
             }
