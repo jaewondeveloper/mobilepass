@@ -3,6 +3,9 @@ package kr.jdms.studentid.ui
 import android.app.Application
 import android.graphics.Bitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
@@ -46,6 +49,18 @@ class ScreenshotTest {
         val bmp = rule.onRoot().captureToImage().asAndroidBitmap()
         val dir = File("build/screenshots").apply { mkdirs() }
         File(dir, "$name.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+
+        // 글자 위치/크기를 JSON 으로: 원본 HTML 의 같은 화면 수치(ref/*.json)와 숫자로 비교하기 위함
+        val nodes = rule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Text), useUnmergedTree = true).fetchSemanticsNodes()
+        val sb = StringBuilder("{\"texts\":[")
+        nodes.forEachIndexed { i, n ->
+            val t = n.config.getOrNull(SemanticsProperties.Text)?.joinToString("") { it.text }.orEmpty().replace("\\", "\\\\").replace("\"", "\\\"")
+            val b = n.boundsInRoot
+            if (i > 0) sb.append(",")
+            sb.append("{\"t\":\"$t\",\"x\":${b.left},\"y\":${b.top},\"w\":${b.width},\"h\":${b.height}}")
+        }
+        sb.append("]}")
+        File(dir, "$name.json").writeText(sb.toString())
     }
 
     @Test fun home_light() = shot("home-light", false) { it.tab = Tab.HOME }
