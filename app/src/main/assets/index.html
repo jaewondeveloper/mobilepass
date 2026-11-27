@@ -2168,7 +2168,7 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
       onCanceled: function () { if (!accepted) retryScan(); },      // 닫기/뒤로가기 = 다시 스캔
       actions: {                                                    // 템플릿 Dialog 는 적은 순서의 반대로 놓으므로 ok 를 먼저
         ok: {
-          label: '이 정보가 맞습니다', type: 'normal',
+          label: '확인', type: 'normal',
           onClicked: function (dlg) {
             accepted = true;
             register(name, code);
@@ -2176,7 +2176,7 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
             Promise.resolve(dlg.hide()).then(function () { closeScanPage(); });
           }
         },
-        retry: { label: '다시 스캔', type: 'cancel' }                // type 'cancel' → Dialog 가 알아서 닫고 onCanceled 호출
+        retry: { label: '재스캔', type: 'cancel' }                // type 'cancel' → Dialog 가 알아서 닫고 onCanceled 호출
       }
     }).show();
   }
