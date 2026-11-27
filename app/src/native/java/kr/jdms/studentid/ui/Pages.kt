@@ -20,9 +20,11 @@ import androidx.compose.ui.unit.dp
 /** 뒤로가기 머리글(높이 68) 아래에 내용이 이어지는 페이지 틀 */
 @Composable
 private fun PageFrame(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
-    Column(Modifier.fillMaxSize()) {
-        BackHeader(title, onBack)
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) { content() }
+    // 머리글은 스크롤 위에 떠 있고(내용이 그 뒤로 지나감), 스크롤되면 뒤로가기 버튼 뒤에 유리 배경이 생긴다
+    val sc = rememberScrollState()
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().verticalScroll(sc).padding(top = 68.dp, bottom = 24.dp)) { content() }
+        BackHeader(title, onBack, glass = sc.value > 0)
     }
 }
 
@@ -126,7 +128,7 @@ fun PrivacyPage(onBack: () -> Unit) {
 @Composable
 private fun DocRow(title: String, lines: List<String>, accentFirst: Boolean = false, divider: Boolean = false) {
     val c = LocalColors.current
-    Box(Modifier.fillMaxWidth()) {
+    PressBox(Modifier.fillMaxWidth(), innerScale = 0.992f, rippleLight = 0.1f, rippleDark = 0.16f, onClick = {}) {
         androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 13.dp)) {
             T(title, 17, c.text, 400, lh = 23)
             Spacer(Modifier.height(4.dp))

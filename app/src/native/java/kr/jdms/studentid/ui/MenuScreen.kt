@@ -23,25 +23,29 @@ import kr.jdms.studentid.R
 @Composable
 fun MenuTab(onReRegister: () -> Unit, onTips: () -> Unit, onInfo: () -> Unit, onSettings: () -> Unit) {
     val c = LocalColors.current
-    Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+    val sc = rememberScrollState()
+    Box(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize().verticalScroll(sc)) {
         Box(Modifier.fillMaxWidth().height(660.dp)) {
-            // 머리글: 제목 26/700 (x=24), 설정 버튼은 오른쪽에서 12 떨어진 48x48 원
-            PT("중동중학교", 24f, 20.5f, 26, c.text, 700)
-            ActionIcon(R.drawable.ic_settings, Modifier.align(Alignment.TopEnd).offset((-12).dp, 12.dp), onSettings)
 
             ImageCard(68f, "학생증 (다시) 등록", "학생증을 스캔해서 등록해요.", R.drawable.img_menu_flag, onReRegister)
             ImageCard(204f, "유용한 정보", "학생증 사용법과 학교 생활 기능을 알아 보세요.", R.drawable.img_menu_ufo, onTips)
 
-            // 정보 행: (10,340) 373x52, 둥근 24. 카드 전체 물결(0.06) 위에 행 물결(0.1)이 한 겹 더 깔리고 내용이 0.992 로 줄어든다.
+            // 정보 행: (10,340) 373x52, 둥근 24. 행 물결(0.1) 위에 카드 전체 물결(0.06)이 한 겹 더 깔리고, 내용은 0.992 로 줄어든다.
             PutFull(340f, 52f) {
-                PressBox(Modifier.fillMaxSize(), shape = RoundedCornerShape(24.dp), rippleLight = 0.06f, rippleDark = 0.12f, bg = c.card, onClick = onInfo) {
-                    PressBox(Modifier.fillMaxSize(), innerScale = 0.992f, rippleLight = 0.1f, rippleDark = 0.16f) {
-                        Ico(R.drawable.ic_info, 28.dp, tint = c.text, modifier = Modifier.align(Alignment.TopStart).offset(18.dp, 12.dp))
-                        PT("정보", 62f, 15f, 17, c.text, 400, lh = 23)
-                    }
+                PressBox(
+                    Modifier.fillMaxSize(), shape = RoundedCornerShape(24.dp), innerScale = 0.992f, innerFill = true,
+                    rippleLight = 0.1f, rippleDark = 0.16f, extraLight = 0.06f, extraDark = 0.12f, bg = c.card, onClick = onInfo,
+                ) {
+                    Ico(R.drawable.ic_info, 28.dp, tint = c.text, modifier = Modifier.align(Alignment.TopStart).offset(18.dp, 12.dp))
+                    PT("정보", 62f, 15f, 17, c.text, 400, lh = 23)
                 }
             }
         }
+        }
+        // 머리글(제목 26/700 x=24, 설정 버튼은 오른쪽에서 12 떨어진 48x48 원)은 스크롤 밖에 떠 있고, 스크롤되면 버튼 뒤에 유리 배경이 생긴다
+        PT("중동중학교", 24f, 20.5f, 26, c.text, 700)
+        ActionIcon(R.drawable.ic_settings, Modifier.align(Alignment.TopEnd).offset((-12).dp, 12.dp), onSettings, glass = sc.value > 0)
     }
 }
 

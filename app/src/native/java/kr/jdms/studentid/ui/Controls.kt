@@ -122,21 +122,40 @@ fun TabBar(selected: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier
 
 // ───────────────────────── 상단 아이콘 버튼 / 뒤로가기 머리글 ─────────────────────────
 
-/** 상단 바의 아이콘 버튼: 48x48 원형 물결, 누르면 0.925 로 줄어듦 (원본 wx-action-bar-button) */
+/**
+ * 스크롤하면 상단 버튼 뒤에 생기는 유리 배경 (원본: 탭바와 같은 반투명 배경 + 그림자 + 흐림 30, 145ms 에 나타남).
+ */
 @Composable
-fun ActionIcon(@DrawableRes icon: Int, modifier: Modifier, onClick: () -> Unit) {
+fun GlassLayer(show: Boolean, radius: Dp, modifier: Modifier = Modifier) {
     val c = LocalColors.current
-    PressBox(modifier.size(48.dp), shape = CircleShape, scale = 0.925f, contentAlignment = Alignment.Center, onClick = onClick) {
-        Ico(icon, 24.dp, tint = c.text)
+    val a by animateFloatAsState(if (show) 1f else 0f, tween(145, easing = LinearEasing), label = "floatGlass")
+    if (a <= 0f) return
+    Box(
+        modifier.graphicsLayer { alpha = a }
+            .cssShadow(radius, 12.dp, 2.5.dp, if (c.dark) Color(0x59000000) else Color(0x1A000000))
+            .cssShadow(radius, 4.dp, 0.dp, if (c.dark) Color(0x1A000000) else Color(0x0A000000))
+            .clip(RoundedCornerShape(radius)).backdropBlur(30.dp).background(c.tabBar),
+    )
+}
+
+/** 상단 바의 아이콘 버튼: 48x48 원형 물결, 누르면 0.925 로 줄어듦 (원본 wx-action-bar-button). 스크롤되면 유리 배경이 생긴다. */
+@Composable
+fun ActionIcon(@DrawableRes icon: Int, modifier: Modifier, onClick: () -> Unit, glass: Boolean = false) {
+    val c = LocalColors.current
+    Box(modifier.size(48.dp)) {
+        GlassLayer(glass, 24.dp, Modifier.fillMaxSize())
+        PressBox(Modifier.fillMaxSize(), shape = CircleShape, scale = 0.925f, contentAlignment = Alignment.Center, onClick = onClick) {
+            Ico(icon, 24.dp, tint = c.text)
+        }
     }
 }
 
 /** 뒤로가기 머리글: 버튼은 (12,12), 제목은 x=60, 머리글 높이 68 */
 @Composable
-fun BackHeader(title: String, onBack: () -> Unit) {
+fun BackHeader(title: String, onBack: () -> Unit, glass: Boolean = false) {
     val c = LocalColors.current
     Box(Modifier.fillMaxWidth().height(68.dp)) {
-        ActionIcon(R.drawable.ic_back, Modifier.align(Alignment.TopStart).offset(12.dp, 12.dp), onBack)
+        ActionIcon(R.drawable.ic_back, Modifier.align(Alignment.TopStart).offset(12.dp, 12.dp), onBack, glass)
         PT(title, 60f, 23.5f, 20, c.text, 700)
     }
 }
@@ -165,7 +184,7 @@ fun ListRow(
     val c = LocalColors.current
     PressBox(
         Modifier.fillMaxWidth(),
-        innerScale = 0.992f, rippleLight = 0.1f, rippleDark = 0.16f, onClick = onClick,
+        innerScale = 0.992f, rippleLight = 0.1f, rippleDark = 0.16f, onClick = onClick ?: {},
     ) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = if (desc != null) 64.dp else 52.dp).padding(start = 18.dp, end = 18.dp),

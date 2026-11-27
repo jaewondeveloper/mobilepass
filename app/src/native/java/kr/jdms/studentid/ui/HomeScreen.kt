@@ -48,14 +48,14 @@ import kr.jdms.studentid.R
  * 누르면 0.979 로 줄고 물결이 깔리며, 학교 선택 메뉴가 열린다.
  */
 @Composable
-fun BoxScope.SchoolTitle(onClick: () -> Unit) {
+fun BoxScope.SchoolTitle(onClick: () -> Unit, glass: Boolean = false) {
     val c = LocalColors.current
-    PressBox(
-        Modifier.align(Alignment.TopStart).offset(12.dp, 10.dp).size(142.dp, 48.dp),
-        shape = RoundedCornerShape(26.dp), scale = 0.979f, onClick = onClick,
-    ) {
-        PT("중동중학교", 12f, 13f, 18, c.text, 700)
-        Ico(R.drawable.ic_dropdown, 24.dp, tint = c.text, modifier = Modifier.align(Alignment.TopStart).offset(108.dp, 12.dp))
+    Box(Modifier.align(Alignment.TopStart).offset(12.dp, 10.dp).size(142.dp, 48.dp)) {
+        GlassLayer(glass, 24.dp, Modifier.fillMaxSize())
+        PressBox(Modifier.fillMaxSize(), shape = RoundedCornerShape(26.dp), scale = 0.979f, onClick = onClick) {
+            PT("중동중학교", 12f, 13f, 18, c.text, 700)
+            Ico(R.drawable.ic_dropdown, 24.dp, tint = c.text, modifier = Modifier.align(Alignment.TopStart).offset(108.dp, 12.dp))
+        }
     }
 }
 
@@ -74,9 +74,8 @@ fun SchoolMenu(open: Boolean, top: androidx.compose.ui.unit.Dp, onDismiss: () ->
     }
     if (!shown) return
     Box(Modifier.fillMaxSize().padding(top = top).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onDismiss() }) {
-        // 흐림이 되는 기기(안드로이드 12+)에서는 원본처럼 80%, 안 되는 기기에서는 뒤 글자가 비치지 않게 거의 불투명하게
-        val blurOk = LocalBackdrop.current != null && android.os.Build.VERSION.SDK_INT >= 31
-        val bg = (if (c.dark) Color(0xFF2A2A2D) else Color(0xFFFCFCFF)).copy(alpha = if (blurOk) 0.88f else 0.97f)
+        // 뒤 글자가 비치지 않게 거의 불투명(95%)하고, 그 위에 약한 배경 흐림이 더해진다 (흐림이 안 되는 기기에서도 똑같이 보인다)
+        val bg = (if (c.dark) Color(0xFF2A2A2D) else Color(0xFFFCFCFF)).copy(alpha = 0.95f)
         val sub = c.text.copy(alpha = 0.4f)
         Box(
             Modifier.align(Alignment.TopStart).offset(10.dp, 4.dp).size(186.dp, 167.dp)
@@ -86,7 +85,7 @@ fun SchoolMenu(open: Boolean, top: androidx.compose.ui.unit.Dp, onDismiss: () ->
                     transformOrigin = TransformOrigin(0f, 0f)
                 }
                 .cssShadow(26.dp, 20.dp, 8.dp, if (c.dark) Color(0x66000000) else Color(0x1A000000))
-                .clip(RoundedCornerShape(26.dp)).backdropBlur(9.dp).background(bg)
+                .clip(RoundedCornerShape(26.dp)).backdropBlur(6.dp).background(bg)
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { },
         ) {
             // 현재 학교 (선택됨)
@@ -114,10 +113,10 @@ fun SchoolMenu(open: Boolean, top: androidx.compose.ui.unit.Dp, onDismiss: () ->
 @Composable
 fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon: () -> Unit, onTitle: () -> Unit = {}) {
     val c = LocalColors.current
+    val sc = rememberScrollState()
     Box(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Box(Modifier.fillMaxSize().verticalScroll(sc)) {
             Box(Modifier.fillMaxWidth().height(660.dp)) {
-                SchoolTitle(onTitle)
 
                 // '지금' 카드: (10,74) 373x147, 둥근 30
                 PutFull(74f, 147f, modifier = Modifier.glass(c)) {
@@ -173,6 +172,8 @@ fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon:
                 }
             }
         }
+        // 머리글은 스크롤 밖에 떠 있고, 스크롤되면 뒤에 유리 배경이 생긴다
+        SchoolTitle(onTitle, glass = sc.value > 0)
     }
 }
 

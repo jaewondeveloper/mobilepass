@@ -193,8 +193,11 @@ fun PressBox(
     shape: androidx.compose.ui.graphics.Shape = androidx.compose.ui.graphics.RectangleShape,
     scale: Float = 1f,
     innerScale: Float = 1f,
+    innerFill: Boolean = false,    // 안쪽 묶음이 상자 전체를 채움 (좌표로 배치하는 내용: 줄어드는 기준점이 상자 가운데가 되도록)
     rippleLight: Float = 0.1f,
     rippleDark: Float = 0.2f,
+    extraLight: Float = 0f,        // 카드 전체에 한 겹 더 깔리는 물결 (메뉴 '정보' 행: 0.06 / 다크 0.12)
+    extraDark: Float = 0f,
     bg: Color = Color.Unspecified,
     border: Color = Color.Unspecified,
     contentAlignment: androidx.compose.ui.Alignment = androidx.compose.ui.Alignment.TopStart,
@@ -211,17 +214,19 @@ fun PressBox(
         if (pressed) a.animateTo(1f, tween(150, easing = LinearEasing)) else a.animateTo(0f, tween(350, easing = Motion.RippleOut))
     }
     val rc = if (c.dark) Color.White.copy(alpha = rippleDark) else Color.Black.copy(alpha = rippleLight)
+    val ec = if (c.dark) Color.White.copy(alpha = extraDark) else Color.Black.copy(alpha = extraLight)
     var m = modifier.graphicsLayer { scaleX = s; scaleY = s }.clip(shape)
     if (bg != Color.Unspecified) m = m.background(bg)
     m = m.drawWithContent {
         drawContent()
         if (rc.alpha > 0f && a.value > 0f) drawRect(rc.copy(alpha = rc.alpha * a.value))
+        if (ec.alpha > 0f && a.value > 0f) drawRect(ec.copy(alpha = ec.alpha * a.value))
     }
     if (border != Color.Unspecified) m = m.border(1.dp, border, shape)
     m = m.pressTap(hold, true, onClick)
     Box(m, contentAlignment = contentAlignment) {
         androidx.compose.runtime.CompositionLocalProvider(LocalPressed provides pressed) {
-            if (innerScale != 1f) Box(Modifier.graphicsLayer { scaleX = si; scaleY = si }, contentAlignment = contentAlignment) { content() }
+            if (innerScale != 1f) Box((if (innerFill) Modifier.fillMaxSize() else Modifier).graphicsLayer { scaleX = si; scaleY = si }, contentAlignment = contentAlignment) { content() }
             else content()
         }
     }
