@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- 기본은 암호화(https)만. 컴시간 학생용 서버는 http(4082 포트)만 제공하므로 그 주소들만 예외로 허용 -->
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">comci.kr</domain>
+        <domain includeSubdomains="false">comci.net</domain>
+        <domain includeSubdomains="false">xn--s39aj90b0nb2xw6xh.kr</domain>
+    </domain-config>
+</network-security-config>
