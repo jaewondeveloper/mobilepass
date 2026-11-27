@@ -10,13 +10,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
+/** 뒤로가기 머리글(높이 68) 아래에 내용이 이어지는 페이지 틀 */
 @Composable
 private fun PageFrame(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
     Column(Modifier.fillMaxSize()) {
@@ -29,13 +29,13 @@ private fun PageFrame(title: String, onBack: () -> Unit, content: @Composable ()
 fun SettingsPage(state: AppState, onBack: () -> Unit, onReRegister: () -> Unit, onUnregister: () -> Unit) {
     PageFrame("설정", onBack) {
         ListCard {
-            ListRow("출결 알림", "등교·하교 시간에 알려줘요", divider = true, trailing = { AppSwitch(state.notifyAttendance) { state.setToggle("att", it) } })
-            ListRow("급식 알림", "오늘의 급식을 알려줘요", divider = true, trailing = { AppSwitch(state.notifyMeal) { state.setToggle("meal", it) } })
-            ListRow("공지 알림", "새 공지가 올라오면 알려줘요", trailing = { AppSwitch(state.notifyNotice) { state.setToggle("notice", it) } })
+            ListRow("출결 알림", "등교·하교 시간에 알려줘요", divider = true, onClick = { state.setToggle("att", !state.notifyAttendance) }, trailing = { AppSwitch(state.notifyAttendance) })
+            ListRow("급식 알림", "오늘의 급식을 알려줘요", divider = true, onClick = { state.setToggle("meal", !state.notifyMeal) }, trailing = { AppSwitch(state.notifyMeal) })
+            ListRow("공지 알림", "새 공지가 올라오면 알려줘요", onClick = { state.setToggle("notice", !state.notifyNotice) }, trailing = { AppSwitch(state.notifyNotice) })
         }
         Spacer(Modifier.height(20.dp))
         ListCard {
-            ListRow("학생증 화면 밝기 높이기", "학생증을 볼 때 밝게 표시해요", trailing = { AppSwitch(state.brightBoost) { state.setToggle("bright", it) } })
+            ListRow("학생증 화면 밝기 높이기", "학생증을 볼 때 밝게 표시해요", onClick = { state.setToggle("bright", !state.brightBoost) }, trailing = { AppSwitch(state.brightBoost) })
         }
         Spacer(Modifier.height(20.dp))
         ListCard {
@@ -57,19 +57,20 @@ fun TipsPage(onBack: () -> Unit) {
     }
 }
 
+/** 정보 페이지: 제목 34/700 (y=109), 버전 13 (y=166), 최신 상태 13 (y=184), 오픈소스 라이선스 버튼은 아래에서 24 위 200x52 */
 @Composable
 fun InfoPage(onBack: () -> Unit, onLicenses: () -> Unit) {
     val c = LocalColors.current
-    PageFrame("정보", onBack) {
-        Column(Modifier.fillMaxWidth().padding(top = 40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("학생증", color = c.text, fontSize = 24.fsp, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(6.dp))
-            Text("중동중학교 모바일 학생증", color = c.textSub, fontSize = 14.fsp)
-            Spacer(Modifier.height(4.dp))
-            Text("버전 1.0.0", color = c.textMuted, fontSize = 13.fsp)
-            Spacer(Modifier.height(28.dp))
-            PillButton("오픈소스 라이선스", onClick = onLicenses, modifier = Modifier.width(220.dp))
+    val bottom = LocalBottomInset.current
+    Box(Modifier.fillMaxSize()) {
+        // 머리글 아래 좌표계가 아니라 페이지 전체 좌표(원본과 같은 값)로 놓는다
+        PT("학생증", 196.5f, 109f, 34, if (c.dark) c.textBody else Color(0xFF252525), 700, a = A.C)
+        PT("버전 1.0.0.0.23", 196.5f, 166.5f, 13, if (c.dark) c.textMuted else Color(0xFF909090), 400, a = A.C)
+        PT("최신버전입니다.", 196.5f, 184f, 13, c.textSub, 400, a = A.C)
+        Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp + bottom).width(200.dp).height(52.dp)) {
+            PillButton("오픈소스 라이선스", onClick = onLicenses, modifier = Modifier.fillMaxSize())
         }
+        BackHeader("정보", onBack)
     }
 }
 
@@ -86,15 +87,16 @@ fun LicensesPage(onBack: () -> Unit) {
                 "ZXing core" to "Apache License 2.0",
                 "Kotlin Standard Library" to "Apache License 2.0",
             )
-            items.forEachIndexed { i, (n, l) -> ListRow(n, l, divider = i < items.size - 1, descAccent = false) }
+            items.forEachIndexed { i, (n, l) -> ListRow(n, l, divider = i < items.size - 1) }
         }
     }
 }
 
+/** 구역 제목: 13/600, x=28, 카드는 그 아래 25.5 에서 시작 (원본 y=68 → 93.5) */
 @Composable
 private fun SectionLabel(text: String) {
     val c = LocalColors.current
-    Box(Modifier.fillMaxWidth().padding(start = 20.dp, bottom = 8.dp, top = 4.dp)) {
-        Text(text, color = c.textSub, fontSize = 13.fsp, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.CenterStart))
+    Box(Modifier.fillMaxWidth().height(25.5.dp)) {
+        PT(text, 28f, 0f, 13, if (c.dark) c.textSub else Color(0xFF848487), 600)
     }
 }

@@ -12,7 +12,6 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,6 +21,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -42,6 +50,7 @@ object Motion {
     val PageOut = CubicBezierEasing(0.22f, 0.25f, 0f, 1f)
     val Dialog = CubicBezierEasing(0.17f, 0.17f, 0.2f, 1f)
     val Ease = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
+    val RippleOut = CubicBezierEasing(0.17f, 0.17f, 0.67f, 1f)
     const val RECOIL_MS = 350
     const val PAGE_IN_MS = 450
     const val PAGE_OUT_MS = 400
@@ -106,6 +115,73 @@ fun PageHost(stack: List<Page>, base: @Composable () -> Unit, pageBg: Color, con
                 content(l.page)
                 Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = dimOf(above))))
             }
+        }
+    }
+}
+
+
+/** 눌림 상태를 안쪽 요소(스위치 등)가 읽을 수 있게 알려 준다 */
+val LocalPressed = androidx.compose.runtime.compositionLocalOf { false }
+
+/**
+ * 원본 템플릿의 눌림 효과를 그대로 옮긴 상자.
+ *  - scale: 상자 전체가 줄어드는 정도 (350ms cubic-bezier(.22,.25,0,1))
+ *  - innerScale: 내용만 줄어드는 정도 (목록 행: 0.992)
+ *  - 눌리는 동안 위에 깔리는 반투명 물결: 라이트 검정 rippleLight / 다크 흰색 rippleDark
+ *    (150ms 에 차오르고, 뗄 때 350ms 에 사라짐)
+ *  - extraRippleLight/Dark: 카드 전체에 한 겹 더 깔리는 물결(메뉴 정보 행)
+ */
+@Composable
+fun PressBox(
+    modifier: Modifier = Modifier,
+    shape: androidx.compose.ui.graphics.Shape = androidx.compose.ui.graphics.RectangleShape,
+    scale: Float = 1f,
+    innerScale: Float = 1f,
+    rippleLight: Float = 0.1f,
+    rippleDark: Float = 0.2f,
+    bg: Color = Color.Unspecified,
+    border: Color = Color.Unspecified,
+    contentAlignment: androidx.compose.ui.Alignment = androidx.compose.ui.Alignment.TopStart,
+    onClick: (() -> Unit)? = null,
+    content: @Composable androidx.compose.foundation.layout.BoxScope.() -> Unit,
+) {
+    val c = LocalColors.current
+    val source = remember { MutableInteractionSource() }
+    val pressed by source.collectIsPressedAsState()
+    val s by animateFloatAsState(if (pressed) scale else 1f, tween(Motion.RECOIL_MS, easing = Motion.Recoil), label = "press")
+    val si by animateFloatAsState(if (pressed) innerScale else 1f, tween(Motion.RECOIL_MS, easing = Motion.Recoil), label = "pressInner")
+    val a = remember { Animatable(0f) }
+    LaunchedEffect(pressed) {
+        if (pressed) a.animateTo(1f, tween(150, easing = LinearEasing)) else a.animateTo(0f, tween(350, easing = Motion.RippleOut))
+    }
+    val rc = if (c.dark) Color.White.copy(alpha = rippleDark) else Color.Black.copy(alpha = rippleLight)
+    var m = modifier.graphicsLayer { scaleX = s; scaleY = s }.clip(shape)
+    if (bg != Color.Unspecified) m = m.background(bg)
+    m = m.drawWithContent {
+        drawContent()
+        if (rc.alpha > 0f && a.value > 0f) drawRect(rc.copy(alpha = rc.alpha * a.value))
+    }
+    if (border != Color.Unspecified) m = m.border(1.dp, border, shape)
+    if (onClick != null) m = m.clickable(interactionSource = source, indication = null, onClick = onClick)
+    Box(m, contentAlignment = contentAlignment) {
+        androidx.compose.runtime.CompositionLocalProvider(LocalPressed provides pressed) {
+            if (innerScale != 1f) Box(Modifier.graphicsLayer { scaleX = si; scaleY = si }, contentAlignment = contentAlignment) { content() }
+            else content()
+        }
+    }
+}
+
+/** 안쪽 요소가 눌려도 바깥 카드가 함께 줄어드는 효과 (홈 대시보드 카드: 0.992). 눌림은 소비하지 않는다. */
+@Composable
+fun Modifier.pressScaleObserver(scale: Float): Modifier {
+    var pressed by remember { mutableStateOf(false) }
+    val s by animateFloatAsState(if (pressed) scale else 1f, tween(Motion.RECOIL_MS, easing = Motion.Recoil), label = "observe")
+    return this.graphicsLayer { scaleX = s; scaleY = s }.pointerInput(Unit) {
+        awaitEachGesture {
+            awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            pressed = true
+            waitForUpOrCancellation(PointerEventPass.Initial)
+            pressed = false
         }
     }
 }

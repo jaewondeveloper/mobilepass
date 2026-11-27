@@ -139,6 +139,7 @@ fun AppSurface(
         if (state.page != Page.NONE) state.back() else state.tab = Tab.HOME
     }
 
+    androidx.compose.runtime.CompositionLocalProvider(LocalBottomInset provides bottom) {
     Box(Modifier.fillMaxSize().background(c.pageBg)) {
         PageHost(
             stack = state.stack, pageBg = c.pageBg,
@@ -188,5 +189,6 @@ fun AppSurface(
         } else null
         DialogOverlay(scanDialog ?: zoom, bottom)
         ToastHost(toast, bottom)
+    }
     }
 }

@@ -1,128 +1,203 @@
 package kr.jdms.studentid.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kr.jdms.studentid.R
 
-/** 학교 이름 머리글 (모든 탭 공통, 웹 화면의 상단 바와 같은 위치) */
+/**
+ * 홈/학생증 탭 머리글: 학교 이름 + 드롭다운 화살표. 원본처럼 (12,10) 142x48 알약 안에 글자는 x=24, 화살표는 x=120.
+ * 누르면 0.979 로 줄고 물결이 깔리며, 학교 선택 메뉴가 열린다.
+ */
 @Composable
-fun TitleBar(size: Int = 18) {
+fun BoxScope.SchoolTitle(onClick: () -> Unit) {
     val c = LocalColors.current
-    Box(Modifier.fillMaxWidth().height(64.dp).padding(start = 24.dp), contentAlignment = Alignment.CenterStart) {
-        Text("중동중학교", color = c.text, fontSize = size.fsp, fontWeight = FontWeight.Bold)
+    PressBox(
+        Modifier.align(Alignment.TopStart).offset(12.dp, 10.dp).size(142.dp, 48.dp),
+        shape = RoundedCornerShape(26.dp), scale = 0.979f, onClick = onClick,
+    ) {
+        PT("중동중학교", 12f, 13f, 18, c.text, 700)
+        Ico(R.drawable.ic_dropdown, 24.dp, tint = c.text, modifier = Modifier.align(Alignment.TopStart).offset(108.dp, 12.dp))
+    }
+}
+
+/**
+ * 학교 선택 메뉴 (원본 wx-context-menu): (10,4) 186x167, 둥근 26, 반투명 흰 배경,
+ * 열릴 때 왼쪽 위에서 0.93 → 1 로 커지며 투명도 0.55 → 1.
+ */
+@Composable
+fun SchoolMenu(open: Boolean, onDismiss: () -> Unit) {
+    val c = LocalColors.current
+    var shown by remember { mutableStateOf(false) }
+    val p = remember { Animatable(0f) }
+    LaunchedEffect(open) {
+        if (open) { shown = true; p.animateTo(1f, tween(200, easing = Motion.Dialog)) }
+        else { p.animateTo(0f, tween(150, easing = androidx.compose.animation.core.LinearEasing)); shown = false }
+    }
+    if (!shown) return
+    Box(Modifier.fillMaxSize().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onDismiss() }) {
+        val bg = (if (c.dark) Color(0xFF2A2A2D) else Color(0xFFFCFCFF)).copy(alpha = 0.8f)
+        val sub = c.text.copy(alpha = 0.4f)
+        Box(
+            Modifier.align(Alignment.TopStart).offset(10.dp, 4.dp).size(186.dp, 167.dp)
+                .graphicsLayer {
+                    val s = 0.93f + 0.07f * p.value
+                    scaleX = s; scaleY = s; alpha = 0.55f + 0.45f * p.value
+                    transformOrigin = TransformOrigin(0f, 0f)
+                }
+                .cssShadow(26.dp, 20.dp, 8.dp, if (c.dark) Color(0x66000000) else Color(0x1A000000))
+                .clip(RoundedCornerShape(26.dp)).background(bg)
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { },
+        ) {
+            // 현재 학교 (선택됨)
+            PressBox(Modifier.offset(0.dp, 0.dp).fillMaxWidth().height(50.dp), shape = RoundedCornerShape(26.dp), onClick = onDismiss) {
+                PT("중동중학교", 24f, 16.5f, 17, c.accentText, 600)
+                Ico(R.drawable.ic_check, 20.dp, tint = c.accentText, modifier = Modifier.align(Alignment.TopStart).offset(142.dp, 18.dp))
+            }
+            // 다른 학교 (선택 불가: 40% 투명)
+            Box(Modifier.offset(0.dp, 50.dp).fillMaxWidth().height(44.dp)) { PT("중동고등학교", 24f, 10.5f, 17, sub, 400) }
+            // 점선
+            Box(
+                Modifier.offset(12.dp, 97.dp).width(162.dp).height(1.dp).drawBehind {
+                    drawLine(sub, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Offset(size.width, 0f), strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 2.dp.toPx())))
+                },
+            )
+            // 장소 설정 (사용 불가)
+            Box(Modifier.offset(0.dp, 109.dp).fillMaxWidth().height(54.dp)) {
+                Ico(R.drawable.ic_settings, 24.dp, tint = sub, modifier = Modifier.align(Alignment.TopStart).offset(22.dp, 15.dp))
+                PT("장소 설정", 54f, 16.5f, 16, sub, 400)
+            }
+        }
     }
 }
 
 @Composable
 fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon: () -> Unit) {
     val c = LocalColors.current
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 96.dp)) {
-        TitleBar()
-        Spacer(Modifier.height(10.dp))
+    var menu by remember { mutableStateOf(false) }
+    Box(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            Box(Modifier.fillMaxWidth().height(660.dp)) {
+                SchoolTitle { menu = true }
 
-        // '지금' 카드: 등록 안내 / 등록 완료
-        Column(Modifier.padding(horizontal = 10.dp).fillMaxWidth().height(146.dp).glass(c).padding(start = 19.dp, top = 13.dp, end = 19.dp)) {
-            Text(
-                if (state.registered) "학생증이 등록되었어요" else "학생증을 등록해 주세요",
-                color = c.textBody, fontSize = 16.fsp, fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(Modifier.height(13.dp))
-            Text(
-                if (state.registered) "${state.name} · ${state.code}" else "종이 학생증을 스캔하면 모바일 학생증이 만들어져요.",
-                color = c.textBody.copy(alpha = 0.85f), fontSize = 14.fsp,
-            )
-            Spacer(Modifier.height(24.dp))
-            PillButton(
-                if (state.registered) "학생증 보기" else "학생증 스캔하기",
-                onClick = if (state.registered) onOpenCard else onScan,
-                height = 38.dp, bg = c.btnBg, border = c.btnBorder, fontSize = 13, icon = R.drawable.ic_scan,
-            )
-        }
+                // '지금' 카드: (10,74) 373x147, 둥근 30
+                PutFull(74f, 147f, modifier = Modifier.glass(c)) {
+                    PT(if (state.registered) "학생증이 등록되었어요" else "학생증을 등록해 주세요", 19f, 13f, 16, c.textBody, 600)
+                    PT(
+                        if (state.registered) "${state.name} · ${state.code}" else "종이 학생증을 스캔하면 모바일 학생증이 만들어져요.",
+                        18f, 48f, 14, c.body2,
+                    )
+                    PillButton(
+                        if (state.registered) "학생증 보기" else "학생증 스캔하기",
+                        onClick = if (state.registered) onOpenCard else onScan,
+                        modifier = Modifier.align(Alignment.TopStart).offset(16.dp, 93.dp),
+                        height = 38.dp, bg = c.btnBg, border = c.btnBorder, fontSize = 13, icon = R.drawable.ic_scan, scale = 0.975f,
+                    )
+                }
+                // 카드 아래 점 하나 (swiper 페이지 표시)
+                Put(193f, 230f, 7f, 7f, A.C, Modifier.clip(CircleShape).background(c.textMuted)) {}
 
-        Spacer(Modifier.height(53.dp))
-        Text("학교생활", color = c.text.copy(alpha = 0.7f), fontSize = 13.fsp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 20.dp))
-        Spacer(Modifier.height(9.dp))
+                PT("학교생활", 20f, 273f, 13, c.text, 600)
 
-        // 대시보드: 4열 타일
-        Column(Modifier.padding(horizontal = 10.dp).fillMaxWidth().clip(CardShape).background(c.card).padding(start = 8.dp, top = 9.dp, end = 8.dp, bottom = 8.dp)) {
-            Text("대시보드", color = c.textSub, fontSize = 13.fsp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 8.dp, bottom = 6.dp))
-            val tiles = listOf(
-                Triple(R.drawable.ic_attend, "출결", onSoon),
-                Triple(R.drawable.ic_meal, "급식", onSoon),
-                Triple(R.drawable.ic_timetable, "시간표", onSoon),
-                Triple(R.drawable.ic_notice, "공지", onSoon),
-                Triple(R.drawable.ic_profile, if (state.registered) "학생증 등록" else "학생증 없음", onOpenCard),
-                Triple(R.drawable.ic_scan, "스캔", onScan),
-            )
-            tiles.chunked(4).forEachIndexed { i, row ->
-                if (i > 0) Spacer(Modifier.height(4.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    row.forEach { (icon, label, click) -> Tile(icon, label, click, Modifier.weight(1f)) }
-                    repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+                // 대시보드 카드: (10,300) 373x171, 둥근 28. 어디를 눌러도 카드 전체가 0.992 로 줄어든다.
+                PutFull(300f, 171f, modifier = Modifier.pressScaleObserver(0.992f).clip(CardShape).background(c.card)) {
+                    PT("대시보드", 16f, 9f, 13, c.textSub, 600)
+                    Column(
+                        Modifier.align(Alignment.TopStart).offset(y = 33.dp).fillMaxWidth().padding(horizontal = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        val tiles = listOf(
+                            Triple(R.drawable.ic_attend, "출결", onSoon),
+                            Triple(R.drawable.ic_meal, "급식", onSoon),
+                            Triple(R.drawable.ic_timetable, "시간표", onSoon),
+                            Triple(R.drawable.ic_notice, "공지", onSoon),
+                            Triple(R.drawable.ic_profile, if (state.registered) "학생증 등록" else "학생증 없음", onOpenCard),
+                            Triple(R.drawable.ic_scan, "스캔", onScan),
+                        )
+                        tiles.chunked(4).forEach { row ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                row.forEach { (icon, label, click) -> Tile(icon, label, click, Modifier.weight(1f)) }
+                                repeat(4 - row.size) { Box(Modifier.weight(1f)) }
+                            }
+                        }
+                    }
+                }
+
+                // 학생증 한 줄: (10,481) 373x77, 둥근 28. 누르면 0.96 으로 줄고 글자 묶음은 0.979 더 줄어든다.
+                PutFull(481f, 77f) {
+                    PressBox(Modifier.fillMaxSize(), shape = CardShape, scale = 0.96f, bg = c.card, onClick = onOpenCard) {
+                        val ts by animateFloatAsState(if (LocalPressed.current) 0.979f else 1f, tween(Motion.RECOIL_MS, easing = Motion.Recoil), label = "cardText")
+                        Box(Modifier.fillMaxSize().graphicsLayer { scaleX = ts; scaleY = ts; transformOrigin = TransformOrigin(0.5f, 0.5f) }) {
+                            PT("중동중학교", 16f, 15.5f, 12, c.text, 600, lh = 16)
+                            PT("모바일 학생증", 16f, 31.5f, 12, c.text, 600, lh = 16)
+                            PT(state.name ?: "미등록", 16f, 47.5f, 12, c.textMuted, 600, lh = 16)
+                        }
+                        AvatarBox(state, Modifier.align(Alignment.TopEnd).offset((-9.5).dp, 9.5.dp))
+                    }
                 }
             }
         }
-
-        Spacer(Modifier.height(11.dp))
-
-        // 학생증 한 줄
-        Row(
-            Modifier.padding(horizontal = 10.dp).fillMaxWidth().height(77.dp).clip(CardShape).background(c.card).clickable(onClick = onOpenCard).padding(start = 16.dp, end = 11.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("중동중학교", color = c.text, fontSize = 12.fsp, lineHeight = 16.fsp, fontWeight = FontWeight.SemiBold)
-                Text("모바일 학생증", color = c.text, fontSize = 12.fsp, lineHeight = 16.fsp, fontWeight = FontWeight.SemiBold)
-                Text(state.name ?: "미등록", color = c.textMuted, fontSize = 12.fsp, lineHeight = 16.fsp, fontWeight = FontWeight.SemiBold)
-            }
-            AvatarBox(state, Modifier)
-        }
+        SchoolMenu(menu) { menu = false }
     }
 }
 
+/** 대시보드 칸: 86.3x63, 둥근 22, 아이콘 32 (위에서 5), 글자는 위에서 41 */
 @Composable
 private fun Tile(icon: Int, label: String, onClick: () -> Unit, modifier: Modifier) {
     val c = LocalColors.current
-    Column(
-        modifier.height(63.dp).clip(RoundedCornerShape(20.dp)).background(c.tile).clickable(onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Box(
+        modifier.height(63.dp).clip(RoundedCornerShape(22.dp)).background(c.tile)
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick),
     ) {
-        Spacer(Modifier.height(6.dp))
-        Ico(icon, 34.dp)
-        Spacer(Modifier.height(2.dp))
-        Text(label, color = c.textSub, fontSize = 12.fsp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Ico(icon, 32.dp, modifier = Modifier.align(Alignment.TopCenter).offset(y = 5.dp))
+        T(label, 12, c.textSub, 600, align = TextAlign.Center, maxLines = 1, softWrap = false, modifier = Modifier.align(Alignment.TopCenter).offset(y = 41.dp))
     }
 }
 
-/** 학생증 카드의 프로필 자리: 내 사진이 있으면 사진, 없으면 기본 아이콘 */
+/** 학생증 카드의 프로필 자리 56x56, 둥근 20, 검정 5% 배경. 내 사진이 있으면 사진, 없으면 기본 아이콘(40) */
 @Composable
 fun AvatarBox(state: AppState, modifier: Modifier, onClick: (() -> Unit)? = null) {
-    val c = LocalColors.current
     val photo = state.photo
     Box(
-        modifier.size(56.dp).clip(RoundedCornerShape(20.dp)).background(if (c.dark) Color0x14 else Color0x0D)
+        modifier.size(56.dp).clip(RoundedCornerShape(20.dp)).background(Color(0x0D000000))
             .let { if (onClick != null && photo != null) it.clickable(onClick = onClick) else it },
         contentAlignment = Alignment.Center,
     ) {
@@ -133,6 +208,3 @@ fun AvatarBox(state: AppState, modifier: Modifier, onClick: (() -> Unit)? = null
         }
     }
 }
-
-private val Color0x14 = androidx.compose.ui.graphics.Color(0x14FFFFFF)
-private val Color0x0D = androidx.compose.ui.graphics.Color(0x0D000000)
