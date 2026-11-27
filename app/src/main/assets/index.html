@@ -2,7 +2,8 @@
 <html>
 
   <head>
-<script>(function(){try{var N=window.SidNative;if(!N||!N.getInsets)return;var s=document.documentElement.style;function set(t,r,b,l){s.setProperty('--c-ess-safe-area-inset-top',t+'px');s.setProperty('--c-ess-safe-area-inset-right',r+'px');s.setProperty('--c-ess-safe-area-inset-bottom',b+'px');s.setProperty('--c-ess-safe-area-inset-left',l+'px');}var i=JSON.parse(N.getInsets());set(i.top,i.right,i.bottom,i.left);window.__sidSetInsets=set;}catch(e){}})();</script>
+<script>try{if(window.vhome&&window.SidNative){var s=document.documentElement.style;['top','right','bottom','left'].forEach(function(k){s.setProperty('--c-ess-safe-area-inset-'+k,'0px');});}}catch(e){}</script>
+<style id="sid-dark">html[data-color-scheme="dark"] px-window-glass.gradient-bg{background-image:none!important;background-color:#010102!important}</style>
 <style id="sid-early">html:not(.sid-go){background:#f1f1f3!important}html:not(.sid-go) body{opacity:0!important}</style>
 <script>try{if(!/[?&]code=/.test(location.search)){history.replaceState(null,'',location.pathname+(location.search?location.search+'&':'?')+'code=app'+location.hash);}}catch(e){}</script>
 
@@ -1221,7 +1222,7 @@ vx-more-tab vx-menu-tab-card:not(.sid-keep),
 vx-more-tab vx-menu-tab-bottom-text { display: none !important; }
 
 /* ── 학생증 화면 ── */
-#sid-id-view { display: block; width: 100%; padding: 8px 10px calc(130px + var(--c-ess-safe-area-inset-bottom, 0px)); box-sizing: border-box; font-family: inherit; color: #010102; }
+#sid-id-view { display: block; width: 100%; padding: 8px 10px calc(130px + env(safe-area-inset-bottom, 0px)); box-sizing: border-box; font-family: inherit; color: #010102; }
 #sid-id-view .sid-title { font-size: 14px; color: #636368; margin: 14px 12px 10px; font-weight: 500; }
 #sid-id-view .sid-card { background: #fcfcff; border-radius: 28px; overflow: hidden; }
 #sid-id-view .sid-head { background: linear-gradient(135deg, #387aff, #1f56d6); color: #fff; padding: 20px 22px; display: flex; align-items: center; gap: 12px; }
@@ -1251,10 +1252,10 @@ vx-more-tab vx-menu-tab-bottom-text { display: none !important; }
 .sid-cam.active { opacity: 1; pointer-events: auto; }
 .sid-cam video { width: 100%; height: 100%; object-fit: cover; }
 .sid-cam-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-.sid-cam-text { position: absolute; top: calc(40px + var(--c-ess-safe-area-inset-top, 0px)); text-align: center; color: #fff; padding: 0 24px; z-index: 3; }
+.sid-cam-text { position: absolute; top: calc(40px + env(safe-area-inset-top, 0px)); text-align: center; color: #fff; padding: 0 24px; z-index: 3; }
 .sid-cam-text h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; margin: 0; }
 .sid-cam-text p { font-size: 14px; opacity: .9; margin: 6px 0 0; }
-.sid-cam-close { position: absolute; top: calc(10px + var(--c-ess-safe-area-inset-top, 0px)); left: 12px; z-index: 4; color: #fff; }
+.sid-cam-close { position: absolute; top: calc(10px + env(safe-area-inset-top, 0px)); left: 12px; z-index: 4; color: #fff; }
 .sid-frame { width: min(270px, 72vw); height: min(420px, 62vh); border: 3px dashed rgba(255,255,255,.85); border-radius: 22px; box-shadow: 0 0 0 9999px rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; transition: border-color .3s, box-shadow .3s; }
 .sid-frame.detected { border: 3.5px solid #387aff; box-shadow: 0 0 20px rgba(56,122,255,.6), 0 0 0 9999px rgba(0,0,0,.55); }
 .sid-frame.verified { border: 3.5px solid #34a853; box-shadow: 0 0 20px rgba(52,168,83,.7), 0 0 0 9999px rgba(0,0,0,.55); }
@@ -1269,7 +1270,7 @@ vx-more-tab vx-menu-tab-bottom-text { display: none !important; }
 /* ── 확인 시트 / 토스트 ── */
 .sid-dim { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 2147483400; opacity: 0; pointer-events: none; transition: opacity .3s; }
 .sid-dim.show { opacity: 1; pointer-events: auto; }
-.sid-sheet { position: fixed; left: 50%; bottom: 0; transform: translate(-50%, 100%); width: 100%; max-width: 480px; z-index: 2147483500; background: #fcfcff; border-radius: 32px 32px 0 0; padding: 28px 22px calc(22px + var(--c-ess-safe-area-inset-bottom, 0px)); text-align: center; transition: transform .45s cubic-bezier(.16,1,.3,1); font-family: 'Noto Sans KR', Roboto, sans-serif; color: #010102; }
+.sid-sheet { position: fixed; left: 50%; bottom: 0; transform: translate(-50%, 100%); width: 100%; max-width: 480px; z-index: 2147483500; background: #fcfcff; border-radius: 32px 32px 0 0; padding: 28px 22px calc(22px + env(safe-area-inset-bottom, 0px)); text-align: center; transition: transform .45s cubic-bezier(.16,1,.3,1); font-family: 'Noto Sans KR', Roboto, sans-serif; color: #010102; }
 .sid-sheet.show { transform: translate(-50%, 0); }
 .sid-sheet h3 { font-size: 20px; font-weight: 700; margin: 0; }
 .sid-sheet .sid-thumb { width: 110px; height: 165px; object-fit: cover; border-radius: 14px; border: 2px solid #e8eaed; margin: 16px auto 14px; display: block; }
@@ -1280,7 +1281,7 @@ vx-more-tab vx-menu-tab-bottom-text { display: none !important; }
 .sid-verify span:last-child { font-weight: 700; }
 .sid-actions { display: flex; gap: 10px; margin-top: 18px; }
 .sid-actions wx-button { flex: 1; min-width: 0; }
-#sid-toast { position: fixed; left: 0; right: 0; bottom: calc(120px + var(--c-ess-safe-area-inset-bottom, 0px)); display: flex; justify-content: center; opacity: 0; pointer-events: none; z-index: 2147483550; font-family: 'Noto Sans KR', Roboto, sans-serif; }
+#sid-toast { position: fixed; left: 0; right: 0; bottom: calc(120px + env(safe-area-inset-bottom, 0px)); display: flex; justify-content: center; opacity: 0; pointer-events: none; z-index: 2147483550; font-family: 'Noto Sans KR', Roboto, sans-serif; }
 .sid-toast-pill { box-sizing: border-box; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0 20px; border-radius: 22px; background: rgba(30,32,38,.72); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); color: #fff; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; max-width: 90vw; transform-origin: 50% 50%; }
 
 /* 대시보드 타일: 애니메이션 아이콘 대신 정적 아이콘만 */
@@ -1333,7 +1334,7 @@ wx-action-bar[more-button] .default-title__wrapper, wx-action-bar[more-button] .
 /* 탭 전환 시 중앙에서 퍼지는 눌림 효과 제거 */
 .sid-cam-close, .sid-cam-close wx-badge, .sid-cam-close svg { color: #fff !important; --wx-badge-color: #fff; }
 .sid-cam-close svg { fill: #fff; }
-wx-action-bar-button.sid-cam-close { position: absolute !important; top: calc(10px + var(--c-ess-safe-area-inset-top, 0px)) !important; left: 12px !important; right: auto !important; bottom: auto !important; width: 40px !important; height: 40px !important; margin: 0 !important; inset-inline-start: 12px !important; transform: none !important; }
+wx-action-bar-button.sid-cam-close { position: absolute !important; top: calc(10px + env(safe-area-inset-top, 0px)) !important; left: 12px !important; right: auto !important; bottom: auto !important; width: 40px !important; height: 40px !important; margin: 0 !important; inset-inline-start: 12px !important; transform: none !important; }
 #sid-id-view .sid-empty wx-button { margin-top: 32px; }
 wx-tab-control-item::before, wx-tab-control-item::after { transition: none !important; animation: none !important; }
 
@@ -1353,7 +1354,7 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
 .list-container > .ux-app-page-information { width: 100% !important; }
 .ux-app-page-information__essential, .ux-app-page-information__title { width: 100% !important; justify-content: center; text-align: center; }
 .ux-app-page-information__get_latest, .ux-app-page-information__version { white-space: nowrap; }
-.list-container > .ux-app-page-information { flex: 1 1 auto !important; align-self: stretch !important; height: auto !important; min-height: 0 !important; padding-bottom: calc(24px + var(--c-ess-safe-area-inset-bottom, 0px)) !important; }
+.list-container > .ux-app-page-information { flex: 1 1 auto !important; align-self: stretch !important; height: auto !important; min-height: 0 !important; padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)) !important; }
 .ux-app-page-information__bottom-wrapper { margin-top: auto !important; }
 
 /* 넓은 화면(태블릿·PC): 내용을 가운데 한 줄로 정렬 */
@@ -1711,12 +1712,13 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
           ]));
         }),
         SidLicensePage: make('오픈소스 라이선스', function (b) {
-          var web = [['Lit', 'BSD-3-Clause License'], ['Swiper', 'MIT License'], ['lottie-web', 'MIT License'], ['Tesseract.js', 'Apache License 2.0'], ['ZXing (@zxing/library)', 'Apache License 2.0'], ['JsBarcode', 'MIT License'], ['Noto Sans KR', 'SIL Open Font License 1.1']];
-          var and = [['AndroidX AppCompat', 'Apache License 2.0'], ['AndroidX Core KTX', 'Apache License 2.0'], ['AndroidX ConstraintLayout', 'Apache License 2.0'], ['AndroidX CameraX', 'Apache License 2.0'], ['Material Components for Android', 'Apache License 2.0'], ['Kotlin Standard Library', 'Apache License 2.0'], ['OkHttp', 'Apache License 2.0'], ['Chromium WebView', 'BSD-3-Clause License']];
+          var web = [['Lit', 'BSD-3-Clause License'], ['Swiper', 'MIT License'], ['lottie-web', 'MIT License'], ['JsBarcode', 'MIT License'], ['Noto Sans KR', 'SIL Open Font License 1.1']];
+          var and = [['AndroidX (AppCompat, Core, Activity, WebKit)', 'Apache License 2.0'], ['AndroidX CameraX', 'Apache License 2.0'], ['Google ML Kit (Barcode Scanning, Text Recognition)', 'ML Kit Terms of Service'], ['Kotlin Standard Library', 'Apache License 2.0']];
           function items(list, p) { return list.map(function (x, i) { return { id: 'sid-l-' + p + i, title: x[0], desc: x[1] }; }); }
           b.appendChild(mkCard('Web technologies', items(web, 'w')));
           b.appendChild(mkCard('Android technologies', items(and, 'a')));
         }),
+        SidScanPage: make('학생증 스캔', function (b) { buildScanBody(b); }),
         SidTipsPage: make('유용한 정보', function (b) {
           b.appendChild(mkCard('학생증 사용 방법', [
             { id: 'sid-t-1', title: '학생증 등록', desc: '홈의 “학생증 스캔하기”로 종이 학생증을 비추면 이름과 바코드를 읽어요.' },
@@ -1894,7 +1896,7 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
   }, true);
 
   function startScan() {
-    if (window.SidNative) { try { window.SidNative.startScan(); } catch (e) { toast('카메라를 열 수 없어요'); } return; }
+    if (window.SidNative) { openScanPage(); return; }
     if (S.step !== 'IDLE') return;
     if (!S.engineReady) { toast('인식 엔진을 준비 중이에요. 잠시 후 다시 눌러주세요'); return; }
     var why = cameraSupport();
@@ -2057,6 +2059,127 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
       register('홍길동', 'S1234567');
     }
   }, true);
+
+  /* ───── 네이티브 스캔: 화면은 템플릿 부품(정보 페이지 + Dialog), 카메라/인식은 앱이 처리 ───── */
+  var SCAN = { frame: null, hint: null, raf: 0, key: '', stableAt: 0, started: false, seen: false, born: 0 };
+  var HINT_DEFAULT = '중동중학교 학생증을 가이드라인 안에 대주세요';
+  var DLG = null;
+
+  function nat(fn) {
+    try { var a = Array.prototype.slice.call(arguments, 1); window.SidNative[fn].apply(window.SidNative, a); } catch (e) { console.error('[native]', fn, e); }
+  }
+  function scanCss() {
+    if ($('sid-scan-css')) return;
+    var st = document.createElement('style'); st.id = 'sid-scan-css';
+    st.textContent =
+      '.sid-scan{display:flex;flex-direction:column;align-items:center;gap:20px;padding:4px 16px 24px;box-sizing:border-box}' +
+      '.sid-scan-hint{margin:0;min-height:42px;text-align:center;font-size:15px;line-height:1.4;color:var(--color-labels-secondary)}' +
+      '.sid-scan-frame{box-sizing:border-box;width:min(270px,72vw);height:min(420px,62vh);border-radius:22px;border:3px dashed var(--color-labels-secondary);transition:border-color .2s}' +
+      '.sid-scan-frame.detected{border-style:solid;border-color:var(--color-accents-blue)}' +
+      '.sid-confirm{display:flex;flex-direction:column;align-items:center;gap:14px}' +
+      '.sid-confirm-thumb{width:110px;height:165px;object-fit:cover;border-radius:14px;border:2px solid var(--color-list-item-divider)}' +
+      '.sid-confirm-rows{align-self:stretch;text-align:start}' +
+      '.sid-confirm-rows>div{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;font-size:15px}' +
+      '.sid-confirm-rows>div+div{border-top:1px solid var(--color-list-item-divider)}' +
+      '.sid-confirm-rows span{color:var(--color-labels-secondary)}' +
+      '.sid-confirm-rows b{color:var(--color-labels-primary);font-weight:700}';
+    document.head.appendChild(st);
+  }
+
+  function openScanPage() { scanCss(); ensurePages(function () { try { PG.PM.startPage('SidScanPage', 'SidScanPage', {}, {}); } catch (e) { console.error(e); } }); }
+  function closeScanPage() { try { history.back(); } catch (e) {} }
+
+  // 정보 페이지 본문: 안내 문구 + 카드 모양 자리. (카드 모양 밖은 템플릿 페이지 배경 그대로)
+  function buildScanBody(b) {
+    var w = document.createElement('div'); w.className = 'sid-scan';
+    var h = document.createElement('p'); h.className = 'sid-scan-hint'; h.textContent = HINT_DEFAULT;
+    var f = document.createElement('div'); f.className = 'sid-scan-frame';
+    w.appendChild(h); w.appendChild(f); b.appendChild(w);
+    SCAN.hint = h; SCAN.frame = f; SCAN.key = ''; SCAN.started = false; SCAN.seen = false; SCAN.born = performance.now();
+    trackScanFrame();
+  }
+  function frameRect() {
+    var r = SCAN.frame.getBoundingClientRect(), bw = 3;       // 테두리(3px) 안쪽만 카메라
+    return { x: r.left + bw, y: r.top + bw, w: r.width - 2 * bw, h: r.height - 2 * bw };
+  }
+  // 페이지 전환 애니메이션이 끝나 자리가 안정되면 카메라를 켜고, 이후 위치가 바뀌면 따라간다. 페이지가 닫히면 끈다.
+  function trackScanFrame() {
+    cancelAnimationFrame(SCAN.raf);
+    (function tick() {
+      var f = SCAN.frame;
+      // 페이지 본문은 만들어진 직후 잠깐 DOM 에 붙기 전일 수 있다 → 한 번 붙은 뒤에 떨어지면(페이지 닫힘) 종료
+      if (f && f.isConnected) SCAN.seen = true;
+      if (!f || (!f.isConnected && (SCAN.seen || performance.now() - SCAN.born > 3000))) { endScanSession(); return; }
+      if (!f.isConnected) { SCAN.raf = requestAnimationFrame(tick); return; }
+      var r = frameRect(), key = [r.x, r.y, r.w, r.h].map(Math.round).join(',');
+      if (r.w > 50 && r.h > 50) {
+        if (key !== SCAN.key) {
+          SCAN.key = key; SCAN.stableAt = performance.now();
+          if (SCAN.started) nat('cameraRect', r.x, r.y, r.w, r.h);
+        } else if (!SCAN.started && performance.now() - SCAN.stableAt > 220) {
+          SCAN.started = true;
+          nat('cameraStart', r.x, r.y, r.w, r.h, 19);          // 모서리 반지름 = 22 - 테두리 3
+        }
+      }
+      SCAN.raf = requestAnimationFrame(tick);
+    })();
+  }
+  function endScanSession() {
+    cancelAnimationFrame(SCAN.raf);
+    if (SCAN.started || SCAN.frame) nat('cameraStop');
+    SCAN.frame = null; SCAN.hint = null; SCAN.started = false; SCAN.key = ''; SCAN.seen = false;
+  }
+
+  // 네이티브 → JS
+  window.__sidScanState = function (hint, detected) {
+    if (SCAN.hint) SCAN.hint.textContent = hint;
+    if (SCAN.frame) SCAN.frame.classList.toggle('detected', !!detected);
+  };
+  window.__sidScanError = function (msg) { toast(msg); closeScanPage(); };
+  window.__sidScanResult = function (name, code, thumb) { showConfirm(name, code, thumb); };
+
+  // 템플릿의 Dialog 클래스 (webpack 모듈 29946). 앱의 다른 다이얼로그와 같은 부품.
+  function dialogClass() {
+    if (DLG) return DLG;
+    var r = getReq();
+    try { DLG = r(29946).l; } catch (e) { console.error('Dialog 모듈 로드 실패', e); }
+    return DLG;
+  }
+  function retryScan() {
+    if (SCAN.hint) SCAN.hint.textContent = HINT_DEFAULT;
+    if (SCAN.frame) SCAN.frame.classList.remove('detected');
+    nat('cameraResume');
+  }
+  function showConfirm(name, code, thumb) {
+    var D = dialogClass();
+    if (!D) { retryScan(); toast('확인 창을 열 수 없어요'); return; }
+    var box = document.createElement('div'); box.className = 'sid-confirm';
+    box.innerHTML = '<img class="sid-confirm-thumb" alt="학생증 스캔 이미지"><div class="sid-confirm-rows">' +
+      '<div><span>인식된 이름</span><b class="sid-n"></b></div><div><span>바코드 식별 코드</span><b class="sid-c"></b></div></div>';
+    box.querySelector('img').src = thumb;
+    box.querySelector('.sid-n').textContent = name;
+    box.querySelector('.sid-c').textContent = code;
+    var accepted = false;
+    new D('sid-confirm', {
+      title: '정보를 확인해주세요',
+      contents: box,
+      cancelable: true,
+      disposable: true,
+      onCanceled: function () { if (!accepted) retryScan(); },      // 닫기/뒤로가기 = 다시 스캔
+      actions: {                                                    // 템플릿 Dialog 는 적은 순서의 반대로 놓으므로 ok 를 먼저
+        ok: {
+          label: '이 정보가 맞습니다', type: 'normal',
+          onClicked: function (dlg) {
+            accepted = true;
+            register(name, code);
+            // 다이얼로그가 완전히 닫힌 뒤에 스캔 페이지를 닫아야 뒤로가기가 페이지에 전달된다
+            Promise.resolve(dlg.hide()).then(function () { closeScanPage(); });
+          }
+        },
+        retry: { label: '다시 스캔', type: 'cancel' }                // type 'cancel' → Dialog 가 알아서 닫고 onCanceled 호출
+      }
+    }).show();
+  }
 
   window.__sidRegister = register;
   window.__sidToast = toast;

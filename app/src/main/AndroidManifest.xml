@@ -24,11 +24,5 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".scan.ScanActivity"
-            android:exported="false"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.MobilePass.Scan"
-            android:windowSoftInputMode="adjustResize" />
     </application>
 </manifest>
