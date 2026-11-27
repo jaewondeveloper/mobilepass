@@ -30,15 +30,21 @@ private fun PageFrame(title: String, onBack: () -> Unit, content: @Composable ()
 
 @Composable
 fun SettingsPage(state: AppState, onBack: () -> Unit, onReRegister: () -> Unit, onUnregister: () -> Unit) {
+    val view = androidx.compose.ui.platform.LocalView.current
+    // 토글을 바꿀 때 진동 (삼성은 전용 스위치 진동, 그 외에는 확인/거절 진동)
+    fun flip(key: String, old: Boolean) {
+        kr.jdms.studentid.SwitchHaptic.perform(view, old, !old)
+        state.setToggle(key, !old)
+    }
     PageFrame("설정", onBack) {
         ListCard {
-            ListRow("출결 알림", "등교·하교 시간에 알려줘요", divider = true, onClick = { state.setToggle("att", !state.notifyAttendance) }, trailing = { AppSwitch(state.notifyAttendance) })
-            ListRow("급식 알림", "오늘의 급식을 알려줘요", divider = true, onClick = { state.setToggle("meal", !state.notifyMeal) }, trailing = { AppSwitch(state.notifyMeal) })
-            ListRow("공지 알림", "새 공지가 올라오면 알려줘요", onClick = { state.setToggle("notice", !state.notifyNotice) }, trailing = { AppSwitch(state.notifyNotice) })
+            ListRow("출결 알림", "등교·하교 시간에 알려줘요", divider = true, onClick = { flip("att", state.notifyAttendance) }, trailing = { AppSwitch(state.notifyAttendance) })
+            ListRow("급식 알림", "오늘의 급식을 알려줘요", divider = true, onClick = { flip("meal", state.notifyMeal) }, trailing = { AppSwitch(state.notifyMeal) })
+            ListRow("공지 알림", "새 공지가 올라오면 알려줘요", onClick = { flip("notice", state.notifyNotice) }, trailing = { AppSwitch(state.notifyNotice) })
         }
         Spacer(Modifier.height(20.dp))
         ListCard {
-            ListRow("학생증 화면 밝기 높이기", "학생증을 볼 때 밝게 표시해요", onClick = { state.setToggle("bright", !state.brightBoost) }, trailing = { AppSwitch(state.brightBoost) })
+            ListRow("학생증 화면 밝기 높이기", "학생증을 볼 때 밝게 표시해요", onClick = { flip("bright", state.brightBoost) }, trailing = { AppSwitch(state.brightBoost) })
         }
         Spacer(Modifier.height(20.dp))
         ListCard {

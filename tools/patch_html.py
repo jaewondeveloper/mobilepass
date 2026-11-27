@@ -74,6 +74,10 @@ sub("    libsStarted = true;\n    Promise.all([",
 sub("  function patchAll() {\n    if (document.hidden) return;\n    if (scanOpen()) return;",
     "  function patchAll() {\n    if (document.hidden) return;\n    if (scanOpen()) return;\n    if (window.SidNative && SCAN.frame) return;")
 
+# 설정 토글을 바꿀 때 진동 (네이티브 SwitchHaptic)
+sub("        if (it.toggle) { PREF[it.toggle] = !PREF[it.toggle]; d.switch = sw(it); c.updateItems(data); }",
+    "        if (it.toggle) { PREF[it.toggle] = !PREF[it.toggle]; d.switch = sw(it); c.updateItems(data); try { if (window.SidNative && SidNative.switchHaptic) SidNative.switchHaptic(!!PREF[it.toggle]); } catch (e) {} }")
+
 # 오픈소스 라이선스 / 개인정보처리방침: 문구는 tools/legal.py (네이티브 앱과 공용)
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import json

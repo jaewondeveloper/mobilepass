@@ -425,6 +425,12 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun isDark(): Boolean = isDark()
 
+        /** 설정 토글을 바꿀 때 진동 (on = 바뀐 뒤 상태) */
+        @JavascriptInterface
+        fun switchHaptic(on: Boolean) {
+            runOnUiThread { SwitchHaptic.perform(webView, !on, on) }
+        }
+
         @JavascriptInterface
         fun getRegistration(): String? = store.toJson()
 

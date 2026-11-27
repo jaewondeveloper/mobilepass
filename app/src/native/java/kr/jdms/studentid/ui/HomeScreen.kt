@@ -74,8 +74,8 @@ fun SchoolMenu(open: Boolean, top: androidx.compose.ui.unit.Dp, onDismiss: () ->
     }
     if (!shown) return
     Box(Modifier.fillMaxSize().padding(top = top).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onDismiss() }) {
-        // 뒤 글자가 비치지 않게 거의 불투명(95%)하고, 그 위에 약한 배경 흐림이 더해진다 (흐림이 안 되는 기기에서도 똑같이 보인다)
-        val bg = (if (c.dark) Color(0xFF2A2A2D) else Color(0xFFFCFCFF)).copy(alpha = 0.95f)
+        // 뒤가 조금도 비치지 않도록 완전 불투명
+        val bg = if (c.dark) Color(0xFF2A2A2D) else Color(0xFFFCFCFF)
         val sub = c.text.copy(alpha = 0.4f)
         Box(
             Modifier.align(Alignment.TopStart).offset(10.dp, 4.dp).size(186.dp, 167.dp)
@@ -85,7 +85,7 @@ fun SchoolMenu(open: Boolean, top: androidx.compose.ui.unit.Dp, onDismiss: () ->
                     transformOrigin = TransformOrigin(0f, 0f)
                 }
                 .cssShadow(26.dp, 20.dp, 8.dp, if (c.dark) Color(0x66000000) else Color(0x1A000000))
-                .clip(RoundedCornerShape(26.dp)).backdropBlur(6.dp).background(bg)
+                .clip(RoundedCornerShape(26.dp)).background(bg)
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { },
         ) {
             // 현재 학교 (선택됨)

@@ -1666,7 +1666,7 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
       if (it.icon) d.icon = { slot: 'head', icon: it.icon };
       if (it.toggle) d.switch = sw(it);
       d.onItemClicked = function () {
-        if (it.toggle) { PREF[it.toggle] = !PREF[it.toggle]; d.switch = sw(it); c.updateItems(data); }
+        if (it.toggle) { PREF[it.toggle] = !PREF[it.toggle]; d.switch = sw(it); c.updateItems(data); try { if (window.SidNative && SidNative.switchHaptic) SidNative.switchHaptic(!!PREF[it.toggle]); } catch (e) {} }
         else if (it.act === 'scan') startScan();
         else if (it.act === 'unreg') doUnreg();
       };
