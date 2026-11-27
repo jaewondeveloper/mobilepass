@@ -45,7 +45,8 @@ class ScreenshotTest {
                 AppSurface(st, ToastState(), null, 0.dp, 0.dp, openScan = {}, scanScreen = {})
             }
         }
-        rule.waitForIdle()
+        rule.mainClock.autoAdvance = false          // 끝나지 않는 루프(시계 갱신 등)가 있어도 멈추지 않도록 수동 진행
+        rule.mainClock.advanceTimeBy(2000)          // 화면 전환/애니메이션이 끝나기에 충분한 시간
         val bmp = rule.onRoot().captureToImage().asAndroidBitmap()
         val dir = File("build/screenshots").apply { mkdirs() }
         File(dir, "$name.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
