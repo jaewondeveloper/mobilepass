@@ -1,19 +1,38 @@
 # 중동중학교 모바일 학생증 (Android)
 
-학생증 HTML 앱(`app/src/main/assets/index.html`)을 WebView로 보여주고,
+학생증 HTML 앱(`app/src/web/assets/index.html`)을 WebView로 보여주고,
 **학생증 촬영 · 바코드 · 이름 인식은 네이티브(CameraX + ML Kit)** 로 처리하는 앱입니다.
 화면(스캔 페이지, 확인 모달)은 직접 만들지 않고 **HTML 템플릿의 기존 부품**을 그대로 씁니다.
+
+## 두 가지 버전 (같은 저장소, 같은 기능)
+
+| | **web** | **native** |
+|---|---|---|
+| 화면 | HTML 템플릿을 WebView 로 표시 (스타일/동작이 원본과 100% 동일) | Jetpack Compose 로 직접 그림 (원본을 렌더링해 측정한 색·크기·반지름·에셋 사용) |
+| 장점 | 원본 HTML 과 완전히 같은 모습, HTML 만 바꾸면 반영 | 부드러움(웹 엔진·25MB 파싱 없음), 시작이 빠름, 메모리 적음 |
+| 단점 | 시작/탭 전환이 느릴 수 있음 (템플릿이 무거움) | 화면을 다시 구현한 것이라 미세한 차이가 있을 수 있고, HTML 이 바뀌면 코드도 맞춰야 함 |
+| 앱 ID | `kr.jdms.studentid` | `kr.jdms.studentid.native` (둘을 같이 설치해 비교 가능) |
+
+**HTML 의 스타일·기능을 그대로 네이티브로 옮겨 주는 언어/도구는 없습니다.** 이 HTML 은 Lit 웹 컴포넌트 + lottie + 커스텀 애니메이션을
+25MB 로 묶은 것이라 자동 변환이 불가능하고, 네이티브로 가려면 화면을 다시 만들어야 합니다. 안드로이드에서 가장 가까운 방법이 Kotlin + Jetpack Compose 이며,
+`native` 버전이 그 결과입니다. 두 버전은 인식/얼굴/저장 로직(`scan/`, `face/`, `CardStore`)을 공유합니다.
+
+```
+./gradlew assembleWebDebug       # → app/build/outputs/apk/web/debug/
+./gradlew assembleNativeDebug    # → app/build/outputs/apk/native/debug/
+```
 
 ## 구조
 
 | 부분 | 파일 | 하는 일 |
 |---|---|---|
-| WebView 화면 | `MainActivity.kt` | HTML 표시, `vhome` 브리지(안전 영역·시스템바 색), 스캔 카메라 제어, 뒤로가기 |
+| web 화면 | `src/web/.../MainActivity.kt` | HTML 표시, `vhome` 브리지(안전 영역·시스템바 색), 스캔 카메라 제어, 뒤로가기 |
 | 스캐너 | `scan/CardScanner.kt` | CameraX 미리보기 + ML Kit 바코드/한글 OCR을 병렬 실행, 결과 확정 |
 | 인식 로직 | `scan/CardParser.kt`, `scan/ScanConsensus.kt` | 학교명·이름·학번 해석, 프레임 합의 (JVM 단위 테스트 있음) |
 | 얼굴 | `face/FaceScanner.kt`, `face/PortraitProcessor.kt`, `face/FaceEmbedder.kt`, `face/FaceMath.kt` | 앞면 얼굴, 셀피 본인 확인, 프로필 사진 생성, 임베딩 실행, 정렬·유사도 수학(단위 테스트) |
 | 저장 | `CardStore.kt` | 등록한 학생증을 기기에 저장 (앱을 껐다 켜도 유지) |
-| 웹 패치 | `tools/patch_html.py` | 원본 HTML → 앱용 HTML |
+| native 화면 | `src/native/.../ui/*` | Compose 화면(탭·페이지·스캔 흐름·다이얼로그), `ScanController` 가 스캔 흐름 상태 관리 |
+| 웹 패치 | `tools/patch_html.py` | 원본 HTML → 앱용 HTML (`src/web/assets/index.html`) |
 
 ### 안전 영역 (상·하 자동 계산)
 템플릿은 앱에서 `window.vhome` 네이티브 규약을 기대합니다. 앱이 이를 구현해서
@@ -56,7 +75,7 @@
 HTML을 수정해 다시 받았다면:
 
 ```
-python3 tools/patch_html.py 새원본.html     # → app/src/main/assets/index.html
+python3 tools/patch_html.py 새원본.html     # → app/src/web/assets/index.html
 ```
 
 ## 빌드
