@@ -26,7 +26,9 @@ private fun androidBlurRadius(cssBlurPx: Float): Float = if (cssBlurPx <= 0f) 0f
  */
 fun Modifier.cssShadow(radius: Dp, blur: Dp, dy: Dp, color: Color, dx: Dp = 0.dp): Modifier = this.drawBehind {
     val r = radius.toPx()
-    val shape = Path().apply { addRoundRect(RoundRect(0f, 0f, size.width, size.height, CornerRadius(r))) }
+    // 요소 자신을 가리는 구멍은 1px 더 크게: 안티앨리어싱 때문에 그림자용 검정 본체가 가장자리에 얇은 선으로 비치는 것을 막는다
+    val e = 1.dp.toPx()
+    val shape = Path().apply { addRoundRect(RoundRect(-e, -e, size.width + e, size.height + e, CornerRadius(r + e))) }
     clipPath(shape, ClipOp.Difference) {
         drawIntoCanvas { canvas ->
             val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)

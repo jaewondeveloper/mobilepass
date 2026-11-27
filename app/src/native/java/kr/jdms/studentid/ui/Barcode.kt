@@ -10,6 +10,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.oned.Code128Writer
 
@@ -19,11 +20,14 @@ fun Code128(value: String, height: Dp, modifier: Modifier = Modifier, color: Col
     val matrix = remember(value) { runCatching { Code128Writer().encode(value, BarcodeFormat.CODE_128, 0, 1) }.getOrNull() }
     Canvas(modifier.fillMaxWidth().height(height)) {
         val m = matrix ?: return@Canvas
-        val modules = m.width
-        val unit = kotlin.math.floor(size.width / modules).coerceAtLeast(1f)          // 모듈 하나의 픽셀 폭 (정수)
-        val total = unit * modules
-        val left = (size.width - total) / 2f
-        var x = 0
+        // ZXing 행렬은 양쪽에 조용한 구역(10칸)이 붙어 있다: 막대 부분만 쓰고, 원본(JsBarcode width=2)처럼 한 칸을 2dp 로 그린다
+        val quiet = 10
+        val first = quiet
+        val modules = m.width - quiet
+        val bars = modules - first
+        val unit = kotlin.math.min(2.dp.toPx(), kotlin.math.floor(size.width / bars)).coerceAtLeast(1f)
+        val left = (size.width - unit * bars) / 2f - unit * first
+        var x = first
         while (x < modules) {
             if (m.get(x, 0)) {
                 var run = 1

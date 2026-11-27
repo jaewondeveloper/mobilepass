@@ -67,6 +67,16 @@ fun T(
         text, color = color, fontSize = fs.fsp, lineHeight = l.fsp,
         fontWeight = FontWeight(weight), textAlign = align, letterSpacing = ls.fsp0,
         maxLines = maxLines, softWrap = softWrap, modifier = m,
+        // 한글은 원본(word-break: keep-all)처럼 낱말(띄어쓰기) 단위로만 줄을 바꾼다
+        style = androidx.compose.material3.LocalTextStyle.current.merge(
+            androidx.compose.ui.text.TextStyle(
+                lineBreak = androidx.compose.ui.text.style.LineBreak(
+                    androidx.compose.ui.text.style.LineBreak.Strategy.Simple,
+                    androidx.compose.ui.text.style.LineBreak.Strictness.Normal,
+                    androidx.compose.ui.text.style.LineBreak.WordBreak.Phrase,
+                ),
+            ),
+        ),
     )
 }
 

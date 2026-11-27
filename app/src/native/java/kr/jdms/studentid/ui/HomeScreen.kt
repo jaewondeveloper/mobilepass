@@ -132,9 +132,6 @@ fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon:
                         height = 38.dp, bg = c.btnBg, border = c.btnBorder, fontSize = 13, icon = R.drawable.ic_scan, scale = 0.975f,
                     )
                 }
-                // 카드 아래 점 하나 (swiper 페이지 표시)
-                Put(193f, 230f, 7f, 7f, A.C, Modifier.clip(CircleShape).background(c.textMuted)) {}
-
                 PT("학교생활", 20f, 273f, 13, c.text, 600)
 
                 // 대시보드 카드: (10,300) 373x171, 둥근 28. 어디를 눌러도 카드 전체가 0.992 로 줄어든다.
