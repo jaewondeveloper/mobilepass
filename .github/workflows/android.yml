@@ -21,7 +21,9 @@ jobs:
       - name: Unit tests
         env:
           LIVE_NEIS: "1"
-        run: ./gradlew --no-daemon testWebDebugUnitTest testNativeDebugUnitTest -i 2>&1 | grep -E "@@LIVE|FAILED|BUILD|tests completed|^e: |error:|What went wrong|Exception|AssertionError|> Task .*(FAILED)" ; exit ${PIPESTATUS[0]}
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon testWebDebugUnitTest testNativeDebugUnitTest -i 2>&1 | grep -E '@@LIVE|FAILED|BUILD|tests completed|^e: |error:|What went wrong|Exception|AssertionError'
 
       - name: 글자 위치 JSON 출력 (로그에서 원본 HTML 수치와 비교)
         if: always()
