@@ -99,21 +99,13 @@ class SchoolTest {
         val found = c.parseSearch("""{"학교검색":[[1,"경기","중동중학교",12345],[2,"부산","중동중학교",999]]}###""", "중동중학교")
         assertEquals(listOf("경기" to 12345, "부산" to 999), found)
 
-        // 2학년 3반: 월요일 1교시 = 과목 1(수학)·교사 2, 2교시 = 과목 2(국어)·교사 1
-        val data = JSONObject(
-            """{"분리":100,"자료492":["","수학","국어"],"자료481":["","김교사","이교사","박교사"],
-               "자료147":[[],[],[[],[],[[],[0,102,201,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]]]}""".replace("[[[],[],[[]", "[[[],[],[[]"),
-        )
-        // 위 문자열은 학년/반/요일/교시 4중 배열이라 직접 만든다
-        val g2 = org.json.JSONArray().put(org.json.JSONArray()).put(org.json.JSONArray()).put(
-            org.json.JSONArray().put(org.json.JSONArray()).put(org.json.JSONArray()).put(org.json.JSONArray()).put(
-                org.json.JSONArray().put(org.json.JSONArray())                                  // 0번 요일(안 씀)
-                    .put(org.json.JSONArray(listOf(0, 102, 201, 0)))                         // 월요일: 1교시, 2교시
-                    .put(org.json.JSONArray(listOf(0, 0, 0, 0))),
-            ),
-        )
-        val all = org.json.JSONArray().put(org.json.JSONArray()).put(org.json.JSONArray()).put(g2)
-        data.put("자료147", all)
+        // 2학년 3반: 월요일 1교시 = 과목 1(수학)·교사 2(이교사), 2교시 = 과목 2(국어)·교사 1(김교사)
+        val data = JSONObject("""{"분리":100,"자료492":["","수학","국어"],"자료481":["","김교사","이교사","박교사"]}""")
+        fun arr(vararg v: Any) = org.json.JSONArray().also { a -> v.forEach { a.put(it) } }
+        val monday = org.json.JSONArray(listOf(0, 102, 201, 0))
+        val class3 = arr(org.json.JSONArray(), monday, org.json.JSONArray(listOf(0, 0, 0, 0)))       // 요일 0(안 씀), 월, 화
+        val grade2 = arr(org.json.JSONArray(), org.json.JSONArray(), org.json.JSONArray(), class3)   // 반 0,1,2 는 비움, 3반
+        data.put("자료147", arr(org.json.JSONArray(), org.json.JSONArray(), grade2))                  // 학년 0,1 은 비움, 2학년
         val t = c.parseTimetable(data, 2, 3, Neis.schoolWeek(LocalDate.of(2026, 3, 4)))
         assertEquals("컴시간", t.source)
         assertEquals(listOf("수학", "국어"), t.days[0].lessons.map { it.subject })
