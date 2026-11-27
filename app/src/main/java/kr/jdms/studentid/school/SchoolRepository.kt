@@ -82,11 +82,8 @@ class SchoolRepository(context: Context, private val fetcher: Fetcher = UrlFetch
         }
         try {
             val s = school()
-            val t = try {
-                comcigan(s, days)
-            } catch (e: Exception) {
-                Neis.timetable(fetcher, s, prefs.grade, prefs.cls, days)        // 컴시간을 못 읽으면 나이스 시간표로
-            }
+            // 컴시간은 요청마다 토큰/난독화로 막아 둔 사이트라 쓰지 않고, 학교가 나이스에 올린 시간표를 쓴다
+            val t = Neis.timetable(fetcher, s, prefs.grade, prefs.cls, days)
             prefs.putCache(key, t.toJson().toString())
             Loaded(t, false, null)
         } catch (e: Exception) {

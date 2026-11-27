@@ -55,25 +55,22 @@ object Neis {
         return Page(total, rows, code)
     }
 
-    class Fetched(val rows: List<JSONObject>, val complete: Boolean, val note: String = "")
+    class Fetched(val rows: List<JSONObject>, val complete: Boolean, val note: String = "", val capped: Boolean = false)
 
-    /** 여러 쪽에 걸친 결과를 모두 모은다. 중간에 막히면 지금까지 받은 것과 complete=false 를 돌려준다. */
+    /**
+     * 한 번 요청한다. 인증키가 없으면 pIndex/pSize 와 상관없이 **항상 앞 5건만** 주므로(실제로 확인함),
+     * 총 건수(list_total_count)가 받은 건수보다 크면 capped=true 로 알려 준다. 호출하는 쪽이 조건을 더 좁혀 다시 요청한다.
+     */
     fun fetchAll(f: Fetcher, endpoint: String, params: Map<String, String>): Fetched {
-        val all = ArrayList<JSONObject>()
-        var index = 1
-        while (index <= 60) {
-            val page = try {
-                parse(endpoint, f.get(url(endpoint, params + mapOf("pIndex" to "$index", "pSize" to "$PAGE_SIZE"))))
-            } catch (e: Exception) {
-                return Fetched(all, false, "연결 실패(${e.message ?: e.javaClass.simpleName})")
-            }
-            if (page.code == "INFO-200") return Fetched(all, true)                // 해당하는 데이터가 없음 = 정상
-            if (page.code != "INFO-000") return Fetched(all, false, "나이스 응답 ${page.code}")               // 제한/오류
-            all.addAll(page.rows)
-            if (page.rows.isEmpty() || all.size >= page.total) return Fetched(all, true)
-            index++
+        val page = try {
+            parse(endpoint, f.get(url(endpoint, params + mapOf("pIndex" to "1", "pSize" to "$PAGE_SIZE"))))
+        } catch (e: Exception) {
+            return Fetched(emptyList(), false, "연결 실패(${e.message ?: e.javaClass.simpleName})")
         }
-        return Fetched(all, false)
+        if (page.code == "INFO-200") return Fetched(emptyList(), true)                     // 해당하는 데이터가 없음 = 정상
+        if (page.code != "INFO-000") return Fetched(emptyList(), false, "나이스 응답 ${page.code}")
+        val capped = page.total > page.rows.size
+        return Fetched(page.rows, !capped, if (capped) "건수 제한" else "", capped)
     }
 
     // ───────── 학교 찾기 ─────────
@@ -159,25 +156,32 @@ object Neis {
         else -> "misTimetable"
     }
 
+    private fun dayRows(f: Fetcher, ep: String, base: Map<String, String>, d: LocalDate): Pair<List<JSONObject>, String> {
+        val first = fetchAll(f, ep, base + mapOf("ALL_TI_YMD" to ymd(d)))
+        val rows = ArrayList(first.rows)
+        if (first.capped) {
+            var p = (rows.maxOfOrNull { it.optString("PERIO").toIntOrNull() ?: 0 } ?: 0) + 1
+            while (p <= 10) {
+                val one = fetchAll(f, ep, base + mapOf("ALL_TI_YMD" to ymd(d), "PERIO" to "$p"))
+                if (one.rows.isEmpty()) break
+                rows.addAll(one.rows)
+                p++
+            }
+        }
+        return rows to (if (!first.complete && !first.capped) first.note else "")
+    }
+
     fun timetable(f: Fetcher, school: SchoolRef, grade: Int, cls: Int, days: List<LocalDate>): Timetable {
         val ep = timetableEndpoint(school.kind)
         val base = mapOf("ATPT_OFCDC_SC_CODE" to school.officeCode, "SD_SCHUL_CODE" to school.schoolCode, "GRADE" to "$grade", "CLASS_NM" to "$cls")
-        // 하루씩 받고(쪽 나눠서), 쪽을 못 넘기면 그날만 교시별로 한 건씩
-        val rows = ArrayList<JSONObject>()
-        var failNote = ""
-        var anyOk = false
-        days.forEach { d ->
-            val day = fetchAll(f, ep, base + mapOf("ALL_TI_YMD" to ymd(d)))
-            if (day.complete) { rows.addAll(day.rows); anyOk = true; return@forEach }
-            if (failNote.isEmpty()) failNote = day.note
-            for (p in 1..8) {
-                val one = fetchAll(f, ep, base + mapOf("ALL_TI_YMD" to ymd(d), "PERIO" to "$p"))
-                rows.addAll(one.rows)
-                if (one.complete) anyOk = true
-                if (one.rows.isEmpty() && p > 1) break           // 그날 더 이상 수업이 없음
-            }
-        }
-        if (!anyOk && rows.isEmpty()) throw java.io.IOException("시간표를 불러오지 못했어요 · $failNote")
+        // 하루씩: 처음 5건(1~5교시)을 받고, 더 있으면 6교시부터 한 교시씩 받는다. 하루치는 서로 다른 날이라 동시에 받는다.
+        val pool = java.util.concurrent.Executors.newFixedThreadPool(days.size)
+        val results = try {
+            days.map { d -> pool.submit<Pair<List<JSONObject>, String>> { dayRows(f, ep, base, d) } }.map { it.get() }
+        } finally { pool.shutdown() }
+        val rows = results.flatMap { it.first }
+        val failNote = results.map { it.second }.firstOrNull { it.isNotEmpty() } ?: ""
+        if (rows.isEmpty() && failNote.isNotEmpty()) throw java.io.IOException("시간표를 불러오지 못했어요 · $failNote")
         return timetablePlan(rows, grade, cls)
     }
 }

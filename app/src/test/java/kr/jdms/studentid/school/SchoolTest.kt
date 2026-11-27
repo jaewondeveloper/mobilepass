@@ -10,7 +10,7 @@ class SchoolTest {
     /** 주소(엔드포인트+쿼리)에 따라 정해진 응답을 돌려주는 가짜 네트워크 */
     private class Fake(val onGet: (String) -> String) : Fetcher {
         val urls = ArrayList<String>()
-        override fun get(url: String, charset: String): String { urls.add(url); return onGet(url) }
+        override fun get(url: String, charset: String): String { synchronized(urls) { urls.add(url) }; return onGet(url) }
     }
 
     private fun neis(endpoint: String, total: Int, rows: List<String>) =
@@ -83,6 +83,38 @@ class SchoolTest {
         assertEquals("NEIS", t.source)
         assertEquals(listOf("국어", "수학"), t.days[0].lessons.map { it.subject })
         assertEquals(listOf(1, 2), t.days[0].lessons.map { it.period })
+    }
+
+    @Test fun 시간표_하루가_5건을_넘으면_6교시부터_한_교시씩_받는다() {
+        fun row(p: Int) = "{\"ALL_TI_YMD\":\"20260302\",\"PERIO\":\"$p\",\"ITRT_CNTNT\":\"과목$p\"}"
+        val f = Fake { url ->
+            when {
+                url.contains("PERIO=6") -> neis("misTimetable", 1, listOf(row(6)))
+                url.contains("PERIO=7") -> neis("misTimetable", 1, listOf(row(7)))
+                url.contains("PERIO=") -> none
+                url.contains("ALL_TI_YMD=20260302") -> neis("misTimetable", 7, (1..5).map { row(it) })     // 키 없이는 앞 5건만 온다
+                else -> none
+            }
+        }
+        val t = Neis.timetable(f, school, 2, 8, Neis.schoolWeek(LocalDate.of(2026, 3, 4)))
+        assertEquals((1..7).toList(), t.days[0].lessons.map { it.period })
+        assertEquals("과목7", t.days[0].lessons.last().subject)
+    }
+
+    /** CI 에서만(LIVE_NEIS=1) 실제 나이스로 2학년 8반 시간표와 급식을 받아 본다 */
+    @Test fun 실제_나이스_확인() {
+        if (System.getenv("LIVE_NEIS") == null) return
+        val f = UrlFetcher(0)
+        val (list, note) = Neis.findSchoolsDetailed(f, "중동중학교")
+        val s = Neis.pickSchool(list) ?: error("학교 못 찾음 $note")
+        val week = Neis.schoolWeek(LocalDate.now())
+        val t = Neis.timetable(f, s, 2, 8, week)
+        val m = Neis.meals(f, s, week)
+        println("@@LIVE school=" + s.name + " " + s.officeCode + " " + s.schoolCode + " " + s.address)
+        t.days.forEach { d -> println("@@LIVE tt " + d.ymd + " " + d.lessons.joinToString(",") { it.period.toString() + it.subject }) }
+        m.days.forEach { d -> println("@@LIVE meal " + d.ymd + " " + d.meals.joinToString("|") { it.type + ":" + it.dishes.joinToString("/") }) }
+        assertTrue(t.days.any { it.lessons.size >= 5 })
+        assertTrue(m.days.isNotEmpty())
     }
 
     @Test fun 컴시간_페이지에서_주소_조각을_읽는다() {
