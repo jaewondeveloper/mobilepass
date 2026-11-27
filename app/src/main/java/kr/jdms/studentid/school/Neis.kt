@@ -28,6 +28,17 @@ object Neis {
         return (0..4).map { monday.plusDays(it.toLong()) }
     }
 
+    /** 급식용: 오늘(주말이면 다음 월요일)부터 평일 count 일 */
+    fun mealDays(today: LocalDate, count: Int = 10): List<LocalDate> {
+        val out = ArrayList<LocalDate>()
+        var d = today
+        while (out.size < count) {
+            if (d.dayOfWeek != DayOfWeek.SATURDAY && d.dayOfWeek != DayOfWeek.SUNDAY) out.add(d)
+            d = d.plusDays(1)
+        }
+        return out
+    }
+
     fun url(endpoint: String, params: Map<String, String>): String =
         "$BASE/$endpoint?Type=json&" + params.entries.joinToString("&") { "${it.key}=${URLEncoder.encode(it.value, "UTF-8")}" }
 
@@ -125,16 +136,14 @@ object Neis {
 
     fun meals(f: Fetcher, school: SchoolRef, days: List<LocalDate>): MealPlan {
         val base = mapOf("ATPT_OFCDC_SC_CODE" to school.officeCode, "SD_SCHUL_CODE" to school.schoolCode)
-        // 키 없이는 건수가 적게 제한되므로 하루씩 받는다 (하루치는 최대 3건)
-        val rows = ArrayList<JSONObject>()
-        var failNote = ""
-        var anyOk = false
-        days.forEach { d ->
-            val one = fetchAll(f, "mealServiceDietInfo", base + mapOf("MLSV_YMD" to ymd(d)))
-            rows.addAll(one.rows)
-            if (one.complete) anyOk = true else if (failNote.isEmpty()) failNote = one.note
-        }
-        if (!anyOk && rows.isEmpty()) throw java.io.IOException("급식을 불러오지 못했어요 · $failNote")
+        // 키 없이는 건수가 적게 제한되므로 하루씩 받는다 (하루치는 최대 3건). 날짜끼리는 동시에 받는다.
+        val pool = java.util.concurrent.Executors.newFixedThreadPool(5)
+        val results = try {
+            days.map { d -> pool.submit<Fetched> { fetchAll(f, "mealServiceDietInfo", base + mapOf("MLSV_YMD" to ymd(d))) } }.map { it.get() }
+        } finally { pool.shutdown() }
+        val rows = results.flatMap { it.rows }
+        val failNote = results.firstOrNull { !it.complete && it.note.isNotEmpty() }?.note ?: ""
+        if (rows.isEmpty() && failNote.isNotEmpty()) throw java.io.IOException("급식을 불러오지 못했어요 · $failNote")
         return mealPlan(rows)
     }
 

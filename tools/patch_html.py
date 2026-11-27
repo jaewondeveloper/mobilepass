@@ -162,7 +162,7 @@ SCHOOL_JS = r"""
   function schoolCfg() { try { return JSON.parse(window.SidNative.getSchoolConfig()); } catch (e) { return { grade: 0, cls: 0 }; } }
   var DOWK = ['일', '월', '화', '수', '목', '금', '토'];
   var ALLERGY = { 1: '난류', 2: '우유', 3: '메밀', 4: '땅콩', 5: '대두', 6: '밀', 7: '고등어', 8: '게', 9: '새우', 10: '돼지고기', 11: '복숭아', 12: '토마토', 13: '아황산류', 14: '호두', 15: '닭고기', 16: '쇠고기', 17: '오징어', 18: '조개류', 19: '잣' };
-  function dayLabel(y) { var m = +y.slice(4, 6), d = +y.slice(6, 8); return DOWK[new Date(+y.slice(0, 4), m - 1, d).getDay()] + '요일 · ' + m + '월 ' + d + '일'; }
+  function dayLabel(y) { var m = +y.slice(4, 6), d = +y.slice(6, 8); var n = new Date(); var pre = (n.getFullYear() === +y.slice(0, 4) && n.getMonth() + 1 === m && n.getDate() === d) ? '오늘 · ' : ''; return pre + DOWK[new Date(+y.slice(0, 4), m - 1, d).getDay()] + '요일 · ' + m + '월 ' + d + '일'; }
   // 템플릿 Dialog 안에 목록 카드를 넣어 하나를 고르게 한다 (학년 → 반 두 단계)
   function chooseFrom(title, labels, done) {
     ensurePages(function () {                                  // 템플릿 부품(목록/Dialog)이 아직 안 불러와졌을 수 있다
@@ -202,7 +202,7 @@ SCHOOL_JS = r"""
         var c = schoolCfg();
         put(mkCard(null, [{ id: 'sid-sch-cfg', title: c.grade + '학년 ' + c.cls + '반', desc: '눌러서 바꾸기', fn: function () { pickClass(function () { load(true); }); } }]));
       } else {
-        put(mkCard(null, [{ id: 'sid-sch-ref', title: '이번 주 급식', desc: '나이스 교육정보 · 눌러서 새로고침', fn: function () { load(true); } }]));
+        put(mkCard(null, [{ id: 'sid-sch-ref', title: '오늘부터의 급식', desc: '나이스 교육정보 · 눌러서 새로고침', fn: function () { load(true); } }]));
       }
       var wait = mkCard(null, [{ id: 'sid-sch-wait', title: '불러오는 중이에요', desc: '잠시만 기다려 주세요' }]); put(wait);
       var t0 = Date.now();
@@ -224,7 +224,7 @@ SCHOOL_JS = r"""
             })));
           }; }));
         } else {
-          if (!days.length) { put(mkCard(null, [{ id: 'sid-sch-none', title: '이번 주 급식 정보가 없어요', desc: '학교에서 식단을 올리면 보여요' }])); return; }
+          if (!days.length) { put(mkCard(null, [{ id: 'sid-sch-none', title: '오늘부터의 급식 정보가 없어요', desc: '학교에서 식단을 올리면 보여요' }])); return; }
           stagger(days.map(function (d, di) { return function () {
             put(mkCard(dayLabel(d.ymd), d.meals.map(function (m, mi) {
               var al = m.allergies && m.allergies.length ? '\n알레르기: ' + m.allergies.map(function (n) { return ALLERGY[n] || n; }).join(', ') : '';

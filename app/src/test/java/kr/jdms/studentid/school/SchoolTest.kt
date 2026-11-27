@@ -60,6 +60,14 @@ class SchoolTest {
         assertTrue(f.urls.all { it.contains("pSize=5") })      // 키 없이는 5건까지만
     }
 
+    @Test fun 급식_날짜는_오늘부터_평일_열흘이고_주말이면_월요일부터() {
+        val fri = Neis.mealDays(LocalDate.of(2026, 11, 27))
+        assertEquals(LocalDate.of(2026, 11, 27), fri.first())
+        assertEquals(LocalDate.of(2026, 11, 30), fri[1])
+        assertEquals(10, fri.size)
+        assertEquals(LocalDate.of(2026, 11, 30), Neis.mealDays(LocalDate.of(2026, 11, 28)).first())
+    }
+
     @Test fun 급식_요청이_모두_실패하면_이유를_알려준다() {
         val f = Fake { throw java.io.IOException("timeout") }
         val e = runCatching { Neis.meals(f, school, Neis.schoolWeek(LocalDate.of(2026, 3, 4))) }.exceptionOrNull()
@@ -109,7 +117,7 @@ class SchoolTest {
         val s = Neis.pickSchool(list) ?: error("학교 못 찾음 $note")
         val week = Neis.schoolWeek(LocalDate.now())
         val t = Neis.timetable(f, s, 2, 8, week)
-        val m = Neis.meals(f, s, week)
+        val m = Neis.meals(f, s, Neis.mealDays(LocalDate.now()))
         println("@@LIVE school=" + s.name + " " + s.officeCode + " " + s.schoolCode + " " + s.address)
         t.days.forEach { d -> println("@@LIVE tt " + d.ymd + " " + d.lessons.joinToString(",") { it.period.toString() + it.subject }) }
         m.days.forEach { d -> println("@@LIVE meal " + d.ymd + " " + d.meals.joinToString("|") { it.type + ":" + it.dishes.joinToString("/") }) }

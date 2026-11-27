@@ -92,8 +92,8 @@ class SchoolRepository(context: Context, private val fetcher: Fetcher = UrlFetch
     }
 
     fun loadMeals(today: LocalDate = LocalDate.now(), force: Boolean = false, cb: (Loaded<MealPlan>) -> Unit) = bg(cb) {
-        val days = Neis.schoolWeek(today)
-        val key = "meal_${weekKey(days)}"
+        val days = Neis.mealDays(today)
+        val key = "meal2_${weekKey(days)}"
         val cached = prefs.cache(key)
         if (!force && cached != null && System.currentTimeMillis() - cached.first < TTL_MS) {
             return@bg Loaded(MealPlan.fromJson(JSONObject(cached.second)), false, null)

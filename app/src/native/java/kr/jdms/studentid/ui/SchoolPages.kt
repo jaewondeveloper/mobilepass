@@ -43,7 +43,8 @@ import java.util.Locale
 
 private fun dayLabel(ymd: String): String {
     val d = runCatching { LocalDate.parse(ymd, DateTimeFormatter.BASIC_ISO_DATE) }.getOrNull() ?: return ymd
-    return "${d.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.KOREAN)} · ${d.monthValue}월 ${d.dayOfMonth}일"
+    val today = if (d == LocalDate.now()) "오늘 · " else ""
+    return "$today${d.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.KOREAN)} · ${d.monthValue}월 ${d.dayOfMonth}일"
 }
 
 /** 나이스 알레르기 번호표 */
@@ -128,7 +129,7 @@ fun MealPage(state: AppState, onBack: () -> Unit) {
     }
     PageFrame("급식", onBack) {
         ListCard {
-            ListRow("이번 주 급식", "나이스 교육정보 · 눌러서 새로고침", onClick = { tick++ })
+            ListRow("오늘부터의 급식", "나이스 교육정보 · 눌러서 새로고침", onClick = { tick++ })
         }
         Spacer(Modifier.height(20.dp))
         val r = result
@@ -136,7 +137,7 @@ fun MealPage(state: AppState, onBack: () -> Unit) {
             r == null -> ListCard { ListRow("불러오는 중이에요", "잠시만 기다려 주세요", descAccent = false) }
             r.value == null -> ListCard { ListRow("불러오지 못했어요", (r.error ?: "인터넷 연결을 확인해 주세요") + "\n눌러서 다시 시도해요", descAccent = false, onClick = { tick++ }) }
             else -> {
-                if (r.value.days.isEmpty()) ListCard { ListRow("이번 주 급식 정보가 없어요", "학교에서 식단을 올리면 보여요", descAccent = false) }
+                if (r.value.days.isEmpty()) ListCard { ListRow("오늘부터의 급식 정보가 없어요", "학교에서 식단을 올리면 보여요", descAccent = false) }
                 val shown = rememberReveal(r.value.days.size, true, r)
                 r.value.days.take(shown).forEach { d ->
                     SectionLabel(dayLabel(d.ymd))
