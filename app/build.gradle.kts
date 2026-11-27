@@ -97,5 +97,5 @@ dependencies {
     "testNativeImplementation"("org.robolectric:robolectric:4.14.1")
     "testNativeImplementation"(composeBom)
     "testNativeImplementation"("androidx.compose.ui:ui-test-junit4")
-    "nativeDebugImplementation"("androidx.compose.ui:ui-test-manifest")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
