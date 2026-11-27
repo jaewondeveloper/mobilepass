@@ -29,7 +29,7 @@ import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.graphics.drawscope.drawLayer
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.draw.drawWithContent
