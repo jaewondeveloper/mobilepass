@@ -242,7 +242,7 @@ class MainActivity : AppCompatActivity() {
             visibility = View.GONE
             outlineProvider = object : ViewOutlineProvider() {
                 override fun getOutline(view: View, outline: Outline) {
-                    if (camRadius < 0) outline.setOval(0, 0, view.width, view.height)       // 얼굴 확인: 타원
+                    if (camRadius < 0) outline.setOval(0, 0, view.width, view.height)       // 얼굴 확인: 정사각형 영역을 원으로 자름
                     else outline.setRoundRect(0, 0, view.width, view.height, (camRadius * resources.displayMetrics.density).toFloat())
                 }
             }
@@ -440,7 +440,7 @@ class MainActivity : AppCompatActivity() {
 
         /**
          * 스캔 페이지의 틀(CSS px) 위에 카메라를 비추기 시작.
-         * mode: "id"(학생증 글자/바코드) · "cardface"(앞면 얼굴, 후면) · "selfie"(본인 확인, 전면). radius < 0 이면 타원.
+         * mode: "id"(학생증 글자/바코드) · "cardface"(앞면 얼굴, 후면) · "selfie"(본인 확인, 전면). radius < 0 이면 원.
          */
         @JavascriptInterface
         fun cameraStart(mode: String, x: Double, y: Double, w: Double, h: Double, radius: Double) {

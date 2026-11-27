@@ -104,7 +104,7 @@ SCAN_JS = r"""
       '.sid-scan{display:flex;flex-direction:column;align-items:center;gap:20px;padding:4px 16px 24px;box-sizing:border-box}' +
       '.sid-scan-hint{margin:0;min-height:42px;text-align:center;font-size:15px;line-height:1.4;color:var(--color-labels-secondary)}' +
       '.sid-scan-frame{box-sizing:border-box;width:min(270px,72vw);height:min(420px,62vh);border-radius:22px;border:3px dashed var(--color-labels-secondary);transition:border-color .2s}' +
-      '.sid-scan-frame.oval{width:min(250px,68vw);height:min(330px,46vh);border-radius:50%}' +
+      '.sid-scan-frame.oval{width:min(260px,72vw);height:min(260px,72vw);border-radius:50%}' +      // 얼굴 확인: 정원 (가로=세로)
       '.sid-scan-frame.detected{border-style:solid;border-color:var(--color-accents-blue)}' +
       '.sid-confirm{display:flex;flex-direction:column;align-items:center;gap:14px}' +
       '.sid-confirm-thumb{width:110px;height:165px;object-fit:cover;border-radius:14px;border:2px solid var(--color-list-item-divider)}' +
@@ -166,7 +166,7 @@ SCAN_JS = r"""
           if (SCAN.started) nat('cameraRect', r.x, r.y, r.w, r.h);
         } else if (!SCAN.started && !SCAN.dialogOpen && performance.now() - SCAN.stableAt > 220) {
           SCAN.started = true;
-          nat('cameraStart', STEP[SCAN.step].mode, r.x, r.y, r.w, r.h, SCAN.step === 'selfie' ? -1 : 19);   // 타원은 -1, 카드는 모서리 22 - 테두리 3
+          nat('cameraStart', STEP[SCAN.step].mode, r.x, r.y, r.w, r.h, SCAN.step === 'selfie' ? -1 : 19);   // 원은 -1(정사각형 영역을 원으로 자름), 카드는 모서리 22 - 테두리 3
         }
       }
       SCAN.raf = setTimeout(tick, 100);

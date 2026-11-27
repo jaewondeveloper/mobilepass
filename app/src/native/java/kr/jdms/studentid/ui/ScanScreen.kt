@@ -35,6 +35,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.text.style.TextAlign
 import kotlinx.coroutines.delay
 
+/** 정사각형 영역이면 정원이 된다 */
 private val OvalShape = object : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline =
         Outline.Generic(Path().apply { addOval(Rect(0f, 0f, size.width, size.height)) })
@@ -42,15 +43,16 @@ private val OvalShape = object : Shape {
 
 /**
  * 스캔 페이지. 웹 버전과 같은 구성: 뒤로가기 머리글 + 안내 문구 + 틀. 틀 바깥은 페이지 배경 그대로이고
- * 카메라는 틀 안쪽에만 보인다. (글자/앞면 단계는 세로 카드 모양, 얼굴 단계는 타원)
+ * 카메라는 틀 안쪽에만 보인다. (글자/앞면 단계는 세로 카드 모양, 얼굴 단계는 정원)
  */
 @Composable
 fun ScanScreen(scan: ScanController, onBack: () -> Unit) {
     val c = LocalColors.current
     val cfg = LocalConfiguration.current
     val oval = scan.step == Step.SELFIE
-    val w: Dp = if (oval) minOf(250.dp, (cfg.screenWidthDp * 0.68f).dp) else minOf(270.dp, (cfg.screenWidthDp * 0.72f).dp)
-    val h: Dp = if (oval) minOf(330.dp, (cfg.screenHeightDp * 0.46f).dp) else minOf(420.dp, (cfg.screenHeightDp * 0.62f).dp)
+    // 얼굴 단계는 정원(가로=세로), 카드 단계는 세로로 긴 카드 모양
+    val w: Dp = if (oval) minOf(260.dp, (cfg.screenWidthDp * 0.72f).dp) else minOf(270.dp, (cfg.screenWidthDp * 0.72f).dp)
+    val h: Dp = if (oval) w else minOf(420.dp, (cfg.screenHeightDp * 0.62f).dp)
 
     // 단계가 바뀌거나 다시 시작할 때: 페이지 전환/틀 모양 변경이 끝난 뒤에 카메라를 켠다
     LaunchedEffect(scan.step, scan.startTick) {
