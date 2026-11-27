@@ -146,7 +146,7 @@ class ScanController(
                         dialog = null
                         pending = name to code
                         fails = 0
-                        goToStep(if (embedder.value.available) Step.CARD_FACE else Step.SELFIE)     // 본인 확인 전에는 등록하지 않는다
+                        goToStep(Step.CARD_FACE)     // 앞면 얼굴 단계는 항상 진행. 본인 확인 전에는 등록하지 않는다
                     },
                 ),
                 onCancel = { retryId() },

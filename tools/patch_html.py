@@ -236,11 +236,8 @@ SCAN_JS = r"""
             SCAN.pending = { name: name, code: code };
             SCAN.fails = 0;
             // 다이얼로그가 완전히 닫힌 뒤에 다음 단계로 (본인 확인 전에는 등록하지 않는다)
-            hideThen(dlg, function () {
-              var can = false;
-              try { can = !!window.SidNative.faceMatchAvailable(); } catch (e) {}
-              setStep(can ? 'cardface' : 'selfie');
-            });
+            // 앞면 얼굴 단계는 항상 진행한다 (비교 모델 유무와 상관없이 증명사진을 먼저 찾아 둠)
+            hideThen(dlg, function () { setStep('cardface'); });
           }
         },
         retry: { label: '재스캔', type: 'cancel' }                  // type 'cancel' → Dialog 가 알아서 닫고 onCanceled 호출
