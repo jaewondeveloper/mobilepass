@@ -1,0 +1,1 @@
+-keep class kr.jdms.studentid.MainActivity$Bridge { *; }

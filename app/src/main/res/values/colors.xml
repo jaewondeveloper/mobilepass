@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- HTML 앱의 배경색과 동일 (세이프 영역이 웹 화면과 이어져 보이도록) -->
+    <color name="app_bg">#F1F1F3</color>
+    <color name="accent">#387AFF</color>
+    <color name="success">#34A853</color>
+    <color name="sheet_bg">#FCFCFF</color>
+    <color name="sheet_row_bg">#F1F1F3</color>
+    <color name="sheet_text">#010102</color>
+    <color name="sheet_text_sub">#636368</color>
+    <color name="sheet_divider">#DCDCE0</color>
+    <color name="btn_secondary">#E8E8EC</color>
+    <color name="launcher_bg">#387AFF</color>
+</resources>
