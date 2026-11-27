@@ -37,6 +37,11 @@ class AppState(context: Context, private val store: CardStore) {
 
     val registered get() = name != null && code != null
 
+    /** 데모(홍길동) 등록 상태. 실제 학교 데이터(나이스) 대신 '데모 버전'으로 표시하는 데 쓴다 */
+    var demoMode by mutableStateOf(prefs.getBoolean("demo", false))
+    /** 시작 화면을 한 번 넘기면(등록 전이라도) 이 실행 동안은 다시 보이지 않는다. 기기를 재부팅/재시작하면 초기화 */
+    var gateDismissed by mutableStateOf(false)
+
     // 설정 토글 (웹 버전의 PREF 와 같은 항목)
     var notifyAttendance by mutableStateOf(prefs.getBoolean("att", true))
     var notifyMeal by mutableStateOf(prefs.getBoolean("meal", true))
@@ -66,5 +71,22 @@ class AppState(context: Context, private val store: CardStore) {
     fun unregister() {
         store.clear()
         reload()
+    }
+
+    /** 시작 화면의 오른쪽 위 모서리를 연속으로 누르면: 홍길동으로 바로 등록된 것처럼 보여 준다 */
+    fun enterDemo() {
+        if (registered) return
+        prefs.edit().putBoolean("demo", true).apply()
+        demoMode = true
+        gateDismissed = true
+        register("홍길동", "S1234567", null)
+    }
+
+    /** 설정의 '데모 종료': 데모 등록을 지우고 시작 화면으로 되돌아간다 */
+    fun exitDemo() {
+        prefs.edit().putBoolean("demo", false).apply()
+        demoMode = false
+        gateDismissed = false
+        unregister()
     }
 }

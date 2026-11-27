@@ -56,7 +56,7 @@ fun IdTab(state: AppState, onScan: () -> Unit, onPhoto: () -> Unit, sc: androidx
 
                 // 학생증 카드: (10,115) 373x229, 둥근 28. 카드 면은 다크모드에서도 흰색 (바코드를 스캐너가 읽어야 하므로)
                 PutFull(115f, 229f, modifier = Modifier.clip(CardShape).background(Color(0xFFFCFCFF))) {
-                    PT("중동중학교", 16f, 16f, 12, InkDark, 600, lh = 16)
+                    PT(if (state.demoMode) "데모 버전" else "중동중학교", 16f, 16f, 12, InkDark, 600, lh = 16)
                     PT("모바일 학생증", 16f, 32f, 12, InkDark, 600, lh = 16)
                     PT(state.name ?: "", 16f, 48f, 12, InkMuted, 600, lh = 16)
                     AvatarBox(state, Modifier.align(Alignment.TopEnd).offset((-10).dp, 12.dp), onClick = onPhoto)       // 사진을 누르면 확대

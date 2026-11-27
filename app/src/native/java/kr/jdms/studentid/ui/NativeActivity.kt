@@ -185,7 +185,7 @@ fun AppSurface(
                         }
                         Box(Modifier.fillMaxSize().padding(top = top)) {
                             when (state.tab) {
-                                Tab.HOME -> HomeTab(state, onScan = openScan, onOpenCard = { state.tab = Tab.CARD }, onSoon = { toast.show("데모에서는 준비 중이에요") }, onMeal = { openSchool(Page.MEAL) }, onTimetable = { openSchool(Page.TIMETABLE) }, sc = homeSc)
+                                Tab.HOME -> HomeTab(state, onScan = openScan, onOpenCard = { state.tab = Tab.CARD }, onSoon = { toast.show("준비 중이에요") }, onMeal = { openSchool(Page.MEAL) }, onTimetable = { openSchool(Page.TIMETABLE) }, sc = homeSc)
                                 Tab.CARD -> IdTab(state, onScan = openScan, onPhoto = { showPhoto = true }, sc = cardSc)
                                 Tab.MENU -> MenuTab(onReRegister = openScan, onTips = { state.open(Page.TIPS) }, onInfo = { state.open(Page.INFO) }, sc = menuSc)
                             }
@@ -194,8 +194,8 @@ fun AppSurface(
                     // 머리글(스크롤 내용 위에 떠 있음)과 탭바
                     Box(Modifier.fillMaxSize().padding(top = top)) {
                         when (state.tab) {
-                            Tab.HOME -> Box(Modifier.fillMaxSize()) { SchoolTitle({ schoolMenu = true }, glass = homeSc.value > 0) }
-                            Tab.CARD -> Box(Modifier.fillMaxSize()) { SchoolTitle({ schoolMenu = true }, glass = cardSc.value > 0) }
+                            Tab.HOME -> Box(Modifier.fillMaxSize()) { SchoolTitle({ schoolMenu = true }, glass = homeSc.value > 0, demoMode = state.demoMode) }
+                            Tab.CARD -> Box(Modifier.fillMaxSize()) { SchoolTitle({ schoolMenu = true }, glass = cardSc.value > 0, demoMode = state.demoMode) }
                             Tab.MENU -> MenuHeader(menuSc) { state.open(Page.SETTINGS) }
                         }
                     }
@@ -207,6 +207,10 @@ fun AppSurface(
                     when (pg) {
                         Page.SETTINGS -> SettingsPage(state, { state.back() }, onReRegister = openScan, onUnregister = {
                             if (state.registered) { state.unregister(); toast.show("등록된 학생증을 삭제했어요") } else toast.show("등록된 학생증이 없어요")
+                        }, onExitDemo = {
+                            state.exitDemo()
+                            state.closeAll()
+                            toast.show("데모를 종료했어요")
                         })
                         Page.TIPS -> TipsPage { state.back() }
                         Page.INFO -> InfoPage({ state.back() }, { state.open(Page.LICENSES) }, { state.open(Page.PRIVACY) })
@@ -233,7 +237,7 @@ fun AppSurface(
                 onCancel = { showPhoto = false },
             )
         } else null
-        SchoolMenu(schoolMenu && state.page == Page.NONE && state.tab != Tab.MENU, top) { schoolMenu = false }
+        SchoolMenu(schoolMenu && state.page == Page.NONE && state.tab != Tab.MENU, top, demoMode = state.demoMode) { schoolMenu = false }
         val setupDialog = if (setupOpen) DialogSpec(
             title = "학년과 반을 알려주세요",
             message = "시간표를 불러올 때만 사용해요.",
@@ -252,6 +256,10 @@ fun AppSurface(
         ) else null
         DialogOverlay(scanDialog ?: setupDialog ?: zoom, bottom)
         ToastHost(toast, bottom)
+        // 학생증 미등록이면 시작 화면이 전체를 가린다 (설정 '데모 종료'로 다시 보일 수 있음)
+        if (!state.registered && !state.gateDismissed) {
+            StartGate(onStart = { state.gateDismissed = true }, onDemo = { state.enterDemo() })
+        }
     }
     }
 }

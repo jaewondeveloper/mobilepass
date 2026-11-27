@@ -49,12 +49,12 @@ import kr.jdms.studentid.R
  * 누르면 0.979 로 줄고 물결이 깔리며, 학교 선택 메뉴가 열린다.
  */
 @Composable
-fun BoxScope.SchoolTitle(onClick: () -> Unit, glass: Boolean = false) {
+fun BoxScope.SchoolTitle(onClick: () -> Unit, glass: Boolean = false, demoMode: Boolean = false) {
     val c = LocalColors.current
     Box(Modifier.align(Alignment.TopStart).offset(12.dp, 10.dp).size(142.dp, 48.dp)) {
         GlassLayer(glass, 24.dp, Modifier.fillMaxSize())
         PressBox(Modifier.fillMaxSize(), shape = RoundedCornerShape(26.dp), scale = 0.979f, onClick = onClick) {
-            PT("중동중학교", 12f, 13f, 18, c.text, 700)
+            PT(if (demoMode) "데모 버전" else "중동중학교", 12f, 13f, 18, c.text, 700)
             Ico(R.drawable.ic_dropdown, 24.dp, tint = c.text, modifier = Modifier.align(Alignment.TopStart).offset(108.dp, 12.dp))
         }
     }
@@ -65,7 +65,7 @@ fun BoxScope.SchoolTitle(onClick: () -> Unit, glass: Boolean = false) {
  * 열릴 때 왼쪽 위에서 0.93 → 1 로 커지며 투명도 0.55 → 1.
  */
 @Composable
-fun SchoolMenu(open: Boolean, top: androidx.compose.ui.unit.Dp, onDismiss: () -> Unit) {
+fun SchoolMenu(open: Boolean, top: androidx.compose.ui.unit.Dp, demoMode: Boolean = false, onDismiss: () -> Unit) {
     val c = LocalColors.current
     var shown by remember { mutableStateOf(false) }
     val p = remember { Animatable(0f) }
@@ -91,7 +91,7 @@ fun SchoolMenu(open: Boolean, top: androidx.compose.ui.unit.Dp, onDismiss: () ->
         ) {
             // 현재 학교 (선택됨)
             PressBox(Modifier.offset(0.dp, 0.dp).fillMaxWidth().height(50.dp), shape = RoundedCornerShape(26.dp), onClick = onDismiss) {
-                PT("중동중학교", 24f, 16.5f, 17, c.accentText, 600)
+                PT(if (demoMode) "데모 버전" else "중동중학교", 24f, 16.5f, 17, c.accentText, 600)
                 Ico(R.drawable.ic_check, 20.dp, tint = c.accentText, modifier = Modifier.align(Alignment.TopStart).offset(142.dp, 18.dp))
             }
             // 다른 학교 (선택 불가: 40% 투명)

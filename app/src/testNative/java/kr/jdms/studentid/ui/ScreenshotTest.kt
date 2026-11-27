@@ -122,12 +122,19 @@ class ScreenshotTest {
 
     @Test fun home_light() = shot("home-light", false) { it.tab = Tab.HOME }
     @Test fun home_dark() = shot("home-dark", true) { it.tab = Tab.HOME }
-    @Test fun home_empty_light() = shot("home-empty-light", false, registered = false) { it.tab = Tab.HOME }
+    // 시작 화면(미등록이면 전체를 가림)을 지나친 뒤의 빈 홈 화면
+    @Test fun home_empty_light() = shot("home-empty-light", false, registered = false) { it.tab = Tab.HOME; it.gateDismissed = true }
+
+    /** 미등록 상태로 앱을 열면 보이는 시작 화면 (가운데 '학생증', 맨 아래 파란 '시작하기') */
+    @Test fun start_gate_light() = shot("start-gate-light", false, registered = false) { it.tab = Tab.HOME }
+    @Test fun start_gate_dark() = shot("start-gate-dark", true, registered = false) { it.tab = Tab.HOME }
     @Test fun card_light() = shot("devices-light", false) { it.tab = Tab.CARD }
     @Test fun card_dark() = shot("devices-dark", true) { it.tab = Tab.CARD }
     @Test fun menu_light() = shot("menu-light", false) { it.tab = Tab.MENU }
     @Test fun menu_dark() = shot("menu-dark", true) { it.tab = Tab.MENU }
     @Test fun settings_light() = shot("settings-light", false) { it.open(Page.SETTINGS) }
+    /** 데모 모드일 때만 설정 맨 아래에 '데모 종료' 행이 보인다 */
+    @Test fun settings_demo_light() = shot("settings-demo-light", false) { it.demoMode = true; it.open(Page.SETTINGS) }
     @Test fun info_light() = shot("info-light", false) { it.open(Page.INFO) }
     @Test fun privacy_light() = shot("privacy-light", false) { it.open(Page.PRIVACY) }
     @Test fun licenses_light() = shot("licenses-light", false) { it.open(Page.LICENSES) }

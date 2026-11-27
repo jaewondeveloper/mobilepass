@@ -38,7 +38,7 @@ internal fun PageFrame(title: String, onBack: () -> Unit, content: @Composable (
 }
 
 @Composable
-fun SettingsPage(state: AppState, onBack: () -> Unit, onReRegister: () -> Unit, onUnregister: () -> Unit) {
+fun SettingsPage(state: AppState, onBack: () -> Unit, onReRegister: () -> Unit, onUnregister: () -> Unit, onExitDemo: () -> Unit = {}) {
     val view = androidx.compose.ui.platform.LocalView.current
     // 토글을 바꿀 때 진동 (삼성은 전용 스위치 진동, 그 외에는 확인/거절 진동)
     fun flip(key: String, old: Boolean) {
@@ -59,6 +59,12 @@ fun SettingsPage(state: AppState, onBack: () -> Unit, onReRegister: () -> Unit, 
         ListCard {
             ListRow("학생증 (다시) 등록", divider = true, onClick = onReRegister)
             ListRow("등록된 학생증 삭제", onClick = onUnregister)
+        }
+        if (state.demoMode) {
+            Spacer(Modifier.height(20.dp))
+            ListCard {
+                ListRow("데모 종료", "데모 등록을 지우고 시작 화면으로 돌아가요", descAccent = false, onClick = onExitDemo)
+            }
         }
     }
 }

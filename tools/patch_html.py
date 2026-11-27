@@ -237,9 +237,125 @@ SCHOOL_JS = r"""
     load(false);
   }
 """
-sub("  function openTips() { openNative('SidTipsPage'); }", "  function openTips() { openNative('SidTipsPage'); }" + SCHOOL_JS + STRIP_JS)
-sub("    patchInfo();\n    renderId();", "    patchInfo();\n    try { patchTTStrip(); } catch (e) { console.error(e); }\n    renderId();")
+
+# ── 시작 화면(미등록 시 전체를 가리는 화면) + 데모 모드 ──
+GATE_JS = r"""
+  function sidDemo() { try { return localStorage.getItem('sid_demo') === '1'; } catch (e) { return false; } }
+  function sidSetDemo(v) { try { if (v) localStorage.setItem('sid_demo', '1'); else localStorage.removeItem('sid_demo'); } catch (e) {} }
+
+  var GATE_CSS = '#sid-gate{position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:#F1F1F3;}' +
+    '#sid-gate .sid-gate-title{font-size:32px;font-weight:700;color:#010102;letter-spacing:-0.02em;}' +
+    '#sid-gate .sid-gate-corner{position:absolute;top:0;right:0;width:84px;height:84px;}' +
+    'html[data-color-scheme="dark"] #sid-gate{background:#010102;}' +
+    'html[data-color-scheme="dark"] #sid-gate .sid-gate-title{color:#FCFCFF;}';
+
+  var gateTaps = 0, gateTapTimer = null;
+  function gateCornerTap() {
+    gateTaps++;
+    clearTimeout(gateTapTimer);
+    gateTapTimer = setTimeout(function () { gateTaps = 0; }, 1000);
+    if (gateTaps >= 7) { gateTaps = 0; enterDemoMode(); }
+  }
+
+  // 데모 등록은 실제 스캔과 같은 경로(register)를 타되, 데모 표시를 남긴다
+  function enterDemoMode() {
+    if (S.reg) return;
+    sidSetDemo(true);
+    S.gateDismissed = true;
+    register('홍길동', 'S1234567');
+  }
+
+  // 설정 > 데모 종료: 데모 등록을 지우고 다시 시작 화면으로
+  function exitDemoMode() {
+    sidSetDemo(false);
+    S.reg = null; S.photo = null;
+    try { if (window.SidNative) window.SidNative.clearRegistration(); } catch (e) {}
+    S.gateDismissed = false;
+    S.rev++;
+    try { history.back(); } catch (e) {}
+    patchAll();
+    toast('데모를 종료했어요');
+  }
+
+  // 학교 선택 드롭다운 알약: 데모 중에는 '중동중학교' 대신 '데모 버전'
+  function patchSchoolLabel() {
+    var want = sidDemo() ? '데모 버전' : '중동중학교';
+    document.querySelectorAll('wx-action-bar .default-title p').forEach(function (p) { setText(p, want); });
+  }
+
+  function patchGate() {
+    var show = !S.reg && !S.gateDismissed;
+    var g = document.getElementById('sid-gate');
+    if (!show) { if (g) g.style.display = 'none'; return; }
+    if (!document.getElementById('sid-gate-style')) {
+      var st = document.createElement('style'); st.id = 'sid-gate-style'; st.textContent = GATE_CSS; document.head.appendChild(st);
+    }
+    if (!g) {
+      g = document.createElement('div'); g.id = 'sid-gate';
+      g.innerHTML =
+        '<div class="sid-gate-title">학생증</div>' +
+        '<div class="sid-gate-corner" data-sid-act="gate-demo"></div>' +
+        '<wx-button class="wx-button wx-recoil" size="lg" shape="round" type="normal" background label="" ' +
+        'ripple-shape="fit" ripple-shape-hint="regular" press-style="button" recoil="button" ' +
+        'data-helpers="pointer-feedback clickable" data-pointer-feedback clickable tabindex="0" role="button" ' +
+        'data-sid-act="gate-start" ' +
+        'style="position:absolute;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom, 0px) + 24px);height:54px;' +
+        'background:var(--color-accents-blue,#387AFF)!important;">' +
+        '<div class="now-card-button-content" style="justify-content:center;width:100%;"><span style="color:#FCFCFF;font-size:17px;font-weight:600;">시작하기</span></div>' +
+        '</wx-button>';
+      document.body.appendChild(g);
+    }
+    g.style.display = 'flex';
+  }
+"""
+sub("  function openTips() { openNative('SidTipsPage'); }", "  function openTips() { openNative('SidTipsPage'); }" + SCHOOL_JS + STRIP_JS + GATE_JS)
+sub("    patchInfo();\n    renderId();", "    patchInfo();\n    try { patchTTStrip(); } catch (e) { console.error(e); }\n    try { patchGate(); patchSchoolLabel(); } catch (e) { console.error(e); }\n    renderId();")
 sub("        else if (it.act === 'unreg') doUnreg();\n      };", "        else if (it.act === 'unreg') doUnreg();\n        else if (typeof it.fn === 'function') it.fn();\n      };")
+
+# 하단 '시작하기'/데모 제스처 클릭 처리 + 기존 '데모에서는 준비 중이에요' 문구 정리
+sub(
+    "else if (act === 'id') goTab('devices');\n    else toast('데모에서는 준비 중이에요');",
+    "else if (act === 'id') goTab('devices');\n"
+    "    else if (act === 'gate-start') { S.gateDismissed = true; patchGate(); }\n"
+    "    else if (act === 'gate-demo') { gateCornerTap(); }\n"
+    "    else toast('준비 중이에요');",
+)
+
+# 예전의 '화면 아무데서나 오른쪽 위 연속 7번 탭' 전역 제스처는 시작 화면(sid-gate) 쪽으로 옮겼다
+sub(
+    "  var taps = 0, tapTimer = null;\n"
+    "  window.addEventListener('pointerdown', function (e) {\n"
+    "    if (e.clientX < window.innerWidth - 80 || e.clientY > 80) return;\n"
+    "    taps++;\n"
+    "    clearTimeout(tapTimer);\n"
+    "    tapTimer = setTimeout(function () { taps = 0; }, 1000);\n"
+    "    if (taps >= 7) {\n"
+    "      taps = 0;\n"
+    "      endScan();\n"
+    "      register('홍길동', 'S1234567');\n"
+    "    }\n"
+    "  }, true);",
+    "  // (데모 진입 제스처는 시작 화면의 오른쪽 위 모서리로 옮겼다 — gateCornerTap/enterDemoMode)",
+)
+
+# 설정 페이지: 데모 중일 때만 '데모 종료' 행 추가
+sub(
+    "{ id: 'sid-s-rescan', title: '학생증 (다시) 등록', act: 'scan' },\n"
+    "            { id: 'sid-s-unreg', title: '등록된 학생증 삭제', act: 'unreg' }\n"
+    "          ]));",
+    "{ id: 'sid-s-rescan', title: '학생증 (다시) 등록', act: 'scan' },\n"
+    "            { id: 'sid-s-unreg', title: '등록된 학생증 삭제', act: 'unreg' }\n"
+    "          ]));\n"
+    "          if (sidDemo()) b.appendChild(mkCard(null, [\n"
+    "            { id: 'sid-s-demo-end', title: '데모 종료', desc: '데모 등록을 지우고 시작 화면으로 돌아가요', fn: exitDemoMode }\n"
+    "          ]));",
+)
+
+# 학생증 즐겨찾기 행(홈 하단 카드)의 학교 이름도 데모 중에는 '데모 버전'
+sub(
+    "setText(el.querySelector('[slot=\"title\"]'), '중동중학교');",
+    "setText(el.querySelector('[slot=\"title\"]'), sidDemo() ? '데모 버전' : '중동중학교');",
+)
 
 # 오픈소스 라이선스 / 개인정보처리방침: 문구는 tools/legal.py (네이티브 앱과 공용)
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))

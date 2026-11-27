@@ -1592,7 +1592,7 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
   function patchDeviceRow() {
     var el = document.querySelector('vx-favorite-group-card vx-device-card#livingRoom_tv');
     if (!el) return;
-    setText(el.querySelector('[slot="title"]'), '중동중학교');
+    setText(el.querySelector('[slot="title"]'), sidDemo() ? '데모 버전' : '중동중학교');
     setText(el.querySelector('[slot="subtitle"]'), '모바일 학생증');
     setText(el.querySelector('[slot="status"]'), S.reg ? S.reg.name : '미등록');
     var wrap = el.querySelector('.device-card__action-button-wrapper');
@@ -1712,6 +1712,9 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
           b.appendChild(mkCard(null, [
             { id: 'sid-s-rescan', title: '학생증 (다시) 등록', act: 'scan' },
             { id: 'sid-s-unreg', title: '등록된 학생증 삭제', act: 'unreg' }
+          ]));
+          if (sidDemo()) b.appendChild(mkCard(null, [
+            { id: 'sid-s-demo-end', title: '데모 종료', desc: '데모 등록을 지우고 시작 화면으로 돌아가요', fn: exitDemoMode }
           ]));
         }),
         SidLicensePage: make('오픈소스 라이선스', function (b) {
@@ -1905,6 +1908,74 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
     });
   }
 
+  function sidDemo() { try { return localStorage.getItem('sid_demo') === '1'; } catch (e) { return false; } }
+  function sidSetDemo(v) { try { if (v) localStorage.setItem('sid_demo', '1'); else localStorage.removeItem('sid_demo'); } catch (e) {} }
+
+  var GATE_CSS = '#sid-gate{position:fixed;inset:0;z-index:999999;display:flex;align-items:center;justify-content:center;background:#F1F1F3;}' +
+    '#sid-gate .sid-gate-title{font-size:32px;font-weight:700;color:#010102;letter-spacing:-0.02em;}' +
+    '#sid-gate .sid-gate-corner{position:absolute;top:0;right:0;width:84px;height:84px;}' +
+    'html[data-color-scheme="dark"] #sid-gate{background:#010102;}' +
+    'html[data-color-scheme="dark"] #sid-gate .sid-gate-title{color:#FCFCFF;}';
+
+  var gateTaps = 0, gateTapTimer = null;
+  function gateCornerTap() {
+    gateTaps++;
+    clearTimeout(gateTapTimer);
+    gateTapTimer = setTimeout(function () { gateTaps = 0; }, 1000);
+    if (gateTaps >= 7) { gateTaps = 0; enterDemoMode(); }
+  }
+
+  // 데모 등록은 실제 스캔과 같은 경로(register)를 타되, 데모 표시를 남긴다
+  function enterDemoMode() {
+    if (S.reg) return;
+    sidSetDemo(true);
+    S.gateDismissed = true;
+    register('홍길동', 'S1234567');
+  }
+
+  // 설정 > 데모 종료: 데모 등록을 지우고 다시 시작 화면으로
+  function exitDemoMode() {
+    sidSetDemo(false);
+    S.reg = null; S.photo = null;
+    try { if (window.SidNative) window.SidNative.clearRegistration(); } catch (e) {}
+    S.gateDismissed = false;
+    S.rev++;
+    try { history.back(); } catch (e) {}
+    patchAll();
+    toast('데모를 종료했어요');
+  }
+
+  // 학교 선택 드롭다운 알약: 데모 중에는 '중동중학교' 대신 '데모 버전'
+  function patchSchoolLabel() {
+    var want = sidDemo() ? '데모 버전' : '중동중학교';
+    document.querySelectorAll('wx-action-bar .default-title p').forEach(function (p) { setText(p, want); });
+  }
+
+  function patchGate() {
+    var show = !S.reg && !S.gateDismissed;
+    var g = document.getElementById('sid-gate');
+    if (!show) { if (g) g.style.display = 'none'; return; }
+    if (!document.getElementById('sid-gate-style')) {
+      var st = document.createElement('style'); st.id = 'sid-gate-style'; st.textContent = GATE_CSS; document.head.appendChild(st);
+    }
+    if (!g) {
+      g = document.createElement('div'); g.id = 'sid-gate';
+      g.innerHTML =
+        '<div class="sid-gate-title">학생증</div>' +
+        '<div class="sid-gate-corner" data-sid-act="gate-demo"></div>' +
+        '<wx-button class="wx-button wx-recoil" size="lg" shape="round" type="normal" background label="" ' +
+        'ripple-shape="fit" ripple-shape-hint="regular" press-style="button" recoil="button" ' +
+        'data-helpers="pointer-feedback clickable" data-pointer-feedback clickable tabindex="0" role="button" ' +
+        'data-sid-act="gate-start" ' +
+        'style="position:absolute;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom, 0px) + 24px);height:54px;' +
+        'background:var(--color-accents-blue,#387AFF)!important;">' +
+        '<div class="now-card-button-content" style="justify-content:center;width:100%;"><span style="color:#FCFCFF;font-size:17px;font-weight:600;">시작하기</span></div>' +
+        '</wx-button>';
+      document.body.appendChild(g);
+    }
+    g.style.display = 'flex';
+  }
+
 
   // 템플릿 wx-button 생성 (정보 페이지의 '오픈소스 라이선스' 버튼과 같은 부품)
   function btnHtml(label, opt) {
@@ -1957,6 +2028,7 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
     patchMenu();
     patchInfo();
     try { patchTTStrip(); } catch (e) { console.error(e); }
+    try { patchGate(); patchSchoolLabel(); } catch (e) { console.error(e); }
     renderId();
     trackTab();
     if (ok && !S.ready && document.querySelector('vx-dashboard-item-card')) {
@@ -2021,7 +2093,9 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
     else if (act === 'tt') openSchoolPage('tt');
     else if (act === 'photo') showPhoto();
     else if (act === 'id') goTab('devices');
-    else toast('데모에서는 준비 중이에요');
+    else if (act === 'gate-start') { S.gateDismissed = true; patchGate(); }
+    else if (act === 'gate-demo') { gateCornerTap(); }
+    else toast('준비 중이에요');
   }, true);
 
   /* ───── 등록 ───── */
@@ -2242,18 +2316,7 @@ vx-now-card .now-card-frame { margin-left: -8px !important; margin-right: -8px !
   $('sid-retry').addEventListener('click', function () { closeSheet(); S.pending = null; setTimeout(startScan, 350); });
 
   /* ───── 데모: 오른쪽 위 연속 7번 탭 → 학생증이 발급된 것으로 처리 ───── */
-  var taps = 0, tapTimer = null;
-  window.addEventListener('pointerdown', function (e) {
-    if (e.clientX < window.innerWidth - 80 || e.clientY > 80) return;
-    taps++;
-    clearTimeout(tapTimer);
-    tapTimer = setTimeout(function () { taps = 0; }, 1000);
-    if (taps >= 7) {
-      taps = 0;
-      endScan();
-      register('홍길동', 'S1234567');
-    }
-  }, true);
+  // (데모 진입 제스처는 시작 화면의 오른쪽 위 모서리로 옮겼다 — gateCornerTap/enterDemoMode)
 
   /* ───── 네이티브 스캔: 화면은 템플릿 부품(정보 페이지 + Dialog), 카메라/인식은 앱이 처리 ─────
      단계: id(글자/바코드) → cardface(학생증 앞면 얼굴) → selfie(전면카메라 본인 확인) → 프로필 사진 확인 → 등록 */
