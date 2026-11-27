@@ -64,6 +64,38 @@ class ScreenshotTest {
         File(dir, "$name.json").writeText(sb.toString())
     }
 
+    // ── 진단: idle 을 막는 요소 찾기 (통과/실패 조합으로 범인을 가린다) ──
+    @Test fun diag_a_plain_text() {
+        rule.setContent { androidx.compose.material3.Text("hello") }
+        rule.waitForIdle()
+    }
+    @Test fun diag_b_theme_only() {
+        rule.setContent { AppTheme(false) { androidx.compose.material3.Text("hello") } }
+        rule.waitForIdle()
+    }
+    @Test fun diag_c_home_tab_only() {
+        val st = state(true)
+        rule.setContent { AppTheme(false) { HomeTab(st, {}, {}, {}) } }
+        rule.waitForIdle()
+    }
+    @Test fun diag_d_pagehost_only() {
+        val st = state(true)
+        rule.setContent { AppTheme(false) { PageHost(st.stack, base = { androidx.compose.material3.Text("base") }, pageBg = androidx.compose.ui.graphics.Color.White, content = {}) } }
+        rule.waitForIdle()
+    }
+    @Test fun diag_e_dialog_only() {
+        rule.setContent { AppTheme(false) { DialogOverlay(null, 0.dp) } }
+        rule.waitForIdle()
+    }
+    @Test fun diag_f_toast_only() {
+        rule.setContent { AppTheme(false) { ToastHost(ToastState(), 0.dp) } }
+        rule.waitForIdle()
+    }
+    @Test fun diag_g_tabbar_only() {
+        rule.setContent { AppTheme(false) { TabBar(Tab.HOME, {}) } }
+        rule.waitForIdle()
+    }
+
     @Test fun home_light() = shot("home-light", false) { it.tab = Tab.HOME }
     @Test fun home_dark() = shot("home-dark", true) { it.tab = Tab.HOME }
     @Test fun home_empty_light() = shot("home-empty-light", false, registered = false) { it.tab = Tab.HOME }
