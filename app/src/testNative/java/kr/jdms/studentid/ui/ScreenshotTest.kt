@@ -10,6 +10,8 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.test.core.app.ApplicationProvider
 import kr.jdms.studentid.CardStore
 import org.junit.Rule
@@ -96,6 +98,19 @@ class ScreenshotTest {
         rule.setContent { AppTheme(false) { TabBar(Tab.HOME, {}) } }
         rule.waitForIdle()
     }
+
+    // ── 진단 2: AppSurface 를 구성요소 단위로 쌓아 가며 처음 실패하는 조합을 찾는다 ──
+    private fun idle(content: @androidx.compose.runtime.Composable () -> Unit) { rule.setContent { AppTheme(false) { content() } }; rule.waitForIdle() }
+    @Test fun diag_h_pagehost_with_home() { val st = state(true); idle { PageHost(st.stack, base = { HomeTab(st, {}, {}, {}) }, pageBg = androidx.compose.ui.graphics.Color.White, content = {}) } }
+    @Test fun diag_i_pagehost_with_home_and_tabbar() { val st = state(true); idle { PageHost(st.stack, base = { androidx.compose.foundation.layout.Box { HomeTab(st, {}, {}, {}); TabBar(Tab.HOME, {}) } }, pageBg = androidx.compose.ui.graphics.Color.White, content = {}) } }
+    @Test fun diag_j_image_bg() { idle { androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(kr.jdms.studentid.R.drawable.bg_home), null) } }
+    @Test fun diag_k_backhandler() { idle { androidx.activity.compose.BackHandler(enabled = true) {}; androidx.compose.material3.Text("x") } }
+    @Test fun diag_l_boxwithconstraints() { idle { androidx.compose.foundation.layout.BoxWithConstraints { androidx.compose.material3.Text("${maxWidth}") } } }
+    @Test fun diag_m_surface_no_dialog_toast() {
+        val st = state(true)
+        idle { val c = LocalColors.current; androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.fillMaxSize().background(c.pageBg)) { PageHost(st.stack, base = { HomeTab(st, {}, {}, {}) }, pageBg = c.pageBg, content = {}) } }
+    }
+    @Test fun diag_n_full_surface_dark_no_image() { val st = state(true); idle { AppSurface(st, ToastState(), null, 0.dp, 0.dp, {}, {}) } }
 
     @Test fun home_light() = shot("home-light", false) { it.tab = Tab.HOME }
     @Test fun home_dark() = shot("home-dark", true) { it.tab = Tab.HOME }
