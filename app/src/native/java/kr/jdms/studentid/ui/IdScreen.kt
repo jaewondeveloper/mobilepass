@@ -43,7 +43,7 @@ fun IdTab(state: AppState, onScan: () -> Unit, onPhoto: () -> Unit) {
                 Spacer(Modifier.height(13.dp))
                 Text("종이 학생증을 스캔하면 모바일 학생증이 만들어져요.", color = c.textBody.copy(alpha = 0.85f), fontSize = 14.fsp)
                 Spacer(Modifier.height(24.dp))
-                PillButton("학생증 스캔하기", onClick = onScan, height = 38.dp, bg = c.card, fontSize = 13, icon = kr.jdms.studentid.R.drawable.ic_scan)
+                PillButton("학생증 스캔하기", onClick = onScan, height = 38.dp, bg = c.btnBg, border = c.btnBorder, fontSize = 13, icon = kr.jdms.studentid.R.drawable.ic_scan)
             }
             return@Column
         }

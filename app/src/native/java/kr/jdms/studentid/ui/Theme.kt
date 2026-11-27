@@ -35,6 +35,9 @@ data class AppColors(
     val glass: Color,
     val glassBorder: Color,
     val switchOff: Color,
+    val glassGlow: Color,     // 안쪽 번짐(inset) 색
+    val btnBorder: Color,     // 카드 안 둥근 버튼의 1px 테두리
+    val btnBg: Color,
 )
 
 val LightColors = AppColors(
@@ -42,9 +45,10 @@ val LightColors = AppColors(
     pageBg = Color(0xFFF1F1F3), card = Color(0xFFFCFCFF), tile = Color(0xFFF3F3F6),
     text = Color(0xFF010102), textSub = Color(0x99010102), textMuted = Color(0x73010102), textBody = Color(0xFF252528),
     divider = Color(0x14000000), accent = Color(0xFF387AFF), accentText = Color(0xFF2E65D4),
-    tabBar = Color(0xD1FAFAFA), tabSelected = Color(0x1A000000), tabIdle = Color(0xFF848487),
+    tabBar = Color(0xD1FAFAFA), tabSelected = Color(0x17000000), tabIdle = Color(0xFF848487),
     pill = Color(0xFFE6E6E9), dialog = Color(0xFFFCFCFF), scrim = Color(0x66000000),
-    glass = Color(0x66FFFFFF), glassBorder = Color(0xCCFFFFFF), switchOff = Color(0xFF9A9A9D),
+    glass = Color(0x4DFFFFFF), glassBorder = Color(0xFFFFFFFF), switchOff = Color(0xFF9A9A9D),
+    glassGlow = Color(0xFFFFFFFF), btnBorder = Color(0xFFE4E4E7), btnBg = Color(0xFFFCFCFF),
 )
 
 val DarkColors = AppColors(
@@ -52,9 +56,10 @@ val DarkColors = AppColors(
     pageBg = Color(0xFF010102), card = Color(0xFF17171A), tile = Color(0xFF222225),
     text = Color(0xFFFAFAFA), textSub = Color(0x99FAFAFA), textMuted = Color(0x73FAFAFA), textBody = Color(0xFFD9D9DC),
     divider = Color(0x1AFFFFFF), accent = Color(0xFF3E7DFF), accentText = Color(0xFF7FA6FF),
-    tabBar = Color(0xE62D2D2D), tabSelected = Color(0xFF424242), tabIdle = Color(0xFF9A9A9D),
+    tabBar = Color(0xB5404040), tabSelected = Color(0x1FFFFFFF), tabIdle = Color(0xFF9A9A9D),
     pill = Color(0xFF3A3A3D), dialog = Color(0xFF3A3A3C), scrim = Color(0x99000000),
-    glass = Color(0xFF080809), glassBorder = Color(0x1FFFFFFF), switchOff = Color(0xFF5A5A5D),
+    glass = Color(0x4D1C1C1C), glassBorder = Color(0xFF222222), switchOff = Color(0xFF5A5A5D),
+    glassGlow = Color(0xB30E0E0E), btnBorder = Color(0xFF3A3A3D), btnBg = Color(0xFF010102),
 )
 
 val LocalColors = staticCompositionLocalOf { LightColors }

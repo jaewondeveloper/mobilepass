@@ -14,7 +14,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.Image
@@ -67,13 +66,12 @@ fun Ico(@DrawableRes id: Int, size: Dp, tint: Color? = null, modifier: Modifier 
 
 val CardShape = RoundedCornerShape(28.dp)
 
-/** 홈의 '지금' 카드처럼 배경 그라데이션 위에 얹는 유리 느낌 카드 */
+/** 홈의 '지금' 카드: 반투명 배경 + 1px 테두리 + 바깥 그림자 + 안쪽 번짐 (원본 box-shadow: 0 0 3px #0000000d, 0 0 50px 9px inset) */
 fun Modifier.glass(c: AppColors, shape: RoundedCornerShape = RoundedCornerShape(30.dp)): Modifier =
-    this.clip(shape)
+    this.cssShadow(30.dp, 3.dp, 0.dp, Color(0x0D000000))
+        .clip(shape)
         .background(c.glass)
-        .let {
-            if (c.dark) it else it.background(Brush.verticalGradient(listOf(Color(0x99FFFFFF), Color(0x26FFFFFF), Color(0x80FFFFFF))))
-        }
+        .cssInsetGlow(30.dp, 50.dp, 9.dp, c.glassGlow)
         .border(1.dp, c.glassBorder, shape)
 
 // ───────────────────────── 둥근 버튼 ─────────────────────────
@@ -88,9 +86,12 @@ fun PillButton(
     fg: Color = LocalColors.current.text,
     fontSize: Int = 17,
     icon: Int? = null,
+    border: Color? = null,
 ) {
+    val shape = RoundedCornerShape(height / 2)
     Row(
-        modifier.recoilClickable(scale = 0.95f, onClick = onClick).height(height).clip(RoundedCornerShape(height / 2)).background(bg).padding(horizontal = 22.dp),
+        modifier.recoilClickable(scale = 0.95f, onClick = onClick).height(height).clip(shape).background(bg)
+            .let { if (border != null) it.border(1.dp, border, shape) else it }.padding(horizontal = 22.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
@@ -106,7 +107,10 @@ fun TabBar(selected: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier
     val c = LocalColors.current
     val items = listOf(Triple(Tab.HOME, R.drawable.ic_tab_home, "홈"), Triple(Tab.CARD, R.drawable.ic_tab_card, "학생증"), Triple(Tab.MENU, R.drawable.ic_tab_menu, "메뉴"))
     Row(
-        modifier.width(250.dp).height(56.dp).clip(RoundedCornerShape(28.dp)).background(c.tabBar).padding(4.dp),
+        modifier.width(250.dp).height(56.dp)
+            .cssShadow(28.dp, 12.dp, 2.5.dp, if (c.dark) Color(0x59000000) else Color(0x1A000000))
+            .cssShadow(28.dp, 4.dp, 0.dp, if (c.dark) Color(0x1A000000) else Color(0x0A000000))
+            .clip(RoundedCornerShape(28.dp)).background(c.tabBar).padding(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         items.forEach { (tab, icon, label) ->
@@ -227,7 +231,8 @@ fun DialogOverlay(spec: DialogSpec?, bottomInset: Dp) {
                 val shape = RoundedCornerShape(26.dp)
                 Column(
                     Modifier.padding(start = 10.dp, end = 10.dp, bottom = 8.dp + bottomInset).fillMaxWidth()
-                        .shadow(4.dp, shape, ambientColor = Color(0x26000000), spotColor = Color(0x26000000))
+                        .cssShadow(26.dp, 8.dp, 2.dp, Color(0x26000000))
+                        .cssShadow(26.dp, 2.dp, 0.dp, Color(0x0A000000))
                         .clip(shape).background(c.dialog)
                         .pointerInput(Unit) { detectTapGestures { } }
                         .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 20.dp),

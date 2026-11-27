@@ -57,7 +57,7 @@ fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon:
             PillButton(
                 if (state.registered) "학생증 보기" else "학생증 스캔하기",
                 onClick = if (state.registered) onOpenCard else onScan,
-                height = 38.dp, bg = c.card, fontSize = 13, icon = R.drawable.ic_scan,
+                height = 38.dp, bg = c.btnBg, border = c.btnBorder, fontSize = 13, icon = R.drawable.ic_scan,
             )
         }
 
