@@ -74,13 +74,15 @@ fun PillButton(
         modifier.height(height), shape = shape, scale = scale, bg = bg, border = border ?: Color.Unspecified,
         contentAlignment = Alignment.Center, onClick = onClick,
     ) {
+        Box(Modifier.padding(if (border != null) 1.dp else 0.dp), contentAlignment = Alignment.Center) {
         if (icon != null) {
             Row(Modifier.padding(start = 8.dp, end = 15.dp), verticalAlignment = Alignment.CenterVertically) {
                 Ico(icon, 26.dp); Spacer(Modifier.width(2.dp))
-                T(label, fontSize, fg, 600, maxLines = 1, softWrap = false)
+                T(label, fontSize, fg, 600, maxLines = 1, softWrap = false, single = true)
             }
         } else {
-            T(label, fontSize, fg, 600, maxLines = 1, softWrap = false, modifier = Modifier.padding(horizontal = 22.dp))
+            T(label, fontSize, fg, 600, maxLines = 1, softWrap = false, single = true, modifier = Modifier.padding(horizontal = 22.dp))
+        }
         }
     }
 }
@@ -112,7 +114,7 @@ fun TabBar(selected: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier
                 onClick = { onSelect(it.tab) },
             ) {
                 Ico(if (on) it.on else it.off, 24.dp, tint = tint, modifier = Modifier.align(Alignment.TopCenter).offset(y = 5.dp))
-                T(it.label, 10, tint, if (on) 600 else 400, align = TextAlign.Center, softWrap = false, modifier = Modifier.align(Alignment.TopCenter).offset(y = 29.dp))
+                T(it.label, 10, tint, if (on) 600 else 400, align = TextAlign.Center, softWrap = false, single = true, modifier = Modifier.align(Alignment.TopCenter).offset(y = 29.dp))
             }
         }
     }
@@ -170,10 +172,10 @@ fun ListRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f).padding(top = if (desc != null) 11.5.dp else 14.dp, bottom = if (desc != null) 11.5.dp else 14.dp)) {
-                T(title, 17, c.text, 400, lh = 23)
+                T(title, 17, c.text, 400, lh = 23, single = true)
                 if (desc != null) {
                     Spacer(Modifier.height(1.dp))
-                    T(desc, if (descAccent) 12 else 14, if (descAccent) c.accentText else c.textSub, 400, lh = if (descAccent) 16 else 19)
+                    T(desc, if (descAccent) 12 else 14, if (descAccent) c.accentText else c.textSub, 400, lh = if (descAccent) 16 else 19, single = descAccent)
                 }
             }
             trailing?.invoke()

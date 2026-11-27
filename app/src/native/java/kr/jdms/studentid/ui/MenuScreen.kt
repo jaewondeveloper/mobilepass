@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -49,8 +51,12 @@ private fun androidx.compose.foundation.layout.BoxScope.ImageCard(y: Float, titl
     val c = LocalColors.current
     PutFull(y, 116f) {
         PressBox(Modifier.fillMaxSize(), shape = RoundedCornerShape(24.dp), rippleLight = 0.06f, rippleDark = 0.12f, bg = c.card, onClick = onClick) {
-            PT(title, 18f, 34f, 20, c.text, 600)
-            PT(desc, 18f, 64f, 15, c.menuDesc, 400, lh = 19, w = 235f)
+            // 제목+설명 묶음은 카드 세로 가운데 (설명이 두 줄이면 묶음이 위로 올라감)
+            androidx.compose.foundation.layout.Column(Modifier.align(Alignment.CenterStart).padding(start = 18.dp)) {
+                T(title, 20, c.text, 600, single = true)
+                androidx.compose.foundation.layout.Spacer(Modifier.height(6.dp))
+                T(desc, 15, c.menuDesc, 400, lh = 19, modifier = Modifier.width(235.dp))
+            }
             Image(
                 painterResource(image), null,
                 Modifier.align(Alignment.TopEnd).offset((-16).dp, 10.dp).size(104.dp, 96.dp),

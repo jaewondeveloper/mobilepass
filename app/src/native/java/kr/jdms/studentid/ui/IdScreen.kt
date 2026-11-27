@@ -84,5 +84,5 @@ private fun Clock(modifier: Modifier) {
     var now by remember { mutableStateOf(Date()) }
     LaunchedEffect(Unit) { if (IdTabConfig.liveClock) while (true) { now = Date(); delay(1000) } }
     val fmt = remember { SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.KOREA) }
-    T(fmt.format(now), 12, InkMuted, 400, align = TextAlign.Center, softWrap = false, modifier = modifier)
+    T(fmt.format(now), 12, InkMuted, 400, align = TextAlign.Center, softWrap = false, single = true, modifier = modifier)
 }

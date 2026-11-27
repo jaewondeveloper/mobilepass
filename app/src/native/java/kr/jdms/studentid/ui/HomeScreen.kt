@@ -188,7 +188,7 @@ private fun Tile(icon: Int, label: String, onClick: () -> Unit, modifier: Modifi
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick),
     ) {
         Ico(icon, 32.dp, modifier = Modifier.align(Alignment.TopCenter).offset(y = 5.dp))
-        T(label, 12, c.textSub, 600, align = TextAlign.Center, maxLines = 1, softWrap = false, modifier = Modifier.align(Alignment.TopCenter).offset(y = 41.dp))
+        T(label, 12, c.textSub, 600, align = TextAlign.Center, maxLines = 1, softWrap = false, single = true, modifier = Modifier.align(Alignment.TopCenter).offset(y = 41.dp))
     }
 }
 

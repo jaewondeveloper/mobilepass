@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -57,12 +58,15 @@ fun normalLh(fs: Int): Int = when (fs) {
 fun T(
     text: String, fs: Int, color: Color, weight: Int = 400, lh: Int? = null,
     align: TextAlign = TextAlign.Start, ls: Float = 0f, maxLines: Int = Int.MAX_VALUE, softWrap: Boolean = true,
-    modifier: Modifier = Modifier,
+    single: Boolean = false, modifier: Modifier = Modifier,
 ) {
+    val l = lh ?: normalLh(fs)
+    // 한 줄 글자는 기기 글꼴의 높이와 상관없이 글자 상자 높이를 원본의 줄 높이(l)에 딱 맞춘다 (글자는 그 안에서 가운데)
+    val m = if (single) modifier.height(l.dp).wrapContentHeight(Alignment.CenterVertically, unbounded = true) else modifier
     Text(
-        text, color = color, fontSize = fs.fsp, lineHeight = (lh ?: normalLh(fs)).fsp,
+        text, color = color, fontSize = fs.fsp, lineHeight = l.fsp,
         fontWeight = FontWeight(weight), textAlign = align, letterSpacing = ls.fsp0,
-        maxLines = maxLines, softWrap = softWrap, modifier = modifier,
+        maxLines = maxLines, softWrap = softWrap, modifier = m,
     )
 }
 
@@ -86,7 +90,7 @@ fun BoxScope.PT(
         A.L -> Modifier.align(Alignment.TopStart).offset(x.dp, top.dp)
     }
     val sizedMod = if (w != null) base.width(w.dp) else base
-    T(text, fs, color, weight, lh, align, ls, maxLines, softWrap = w != null, modifier = sizedMod.then(modifier))
+    T(text, fs, color, weight, lh, align, ls, maxLines, softWrap = w != null, single = w == null, modifier = sizedMod.then(modifier))
 }
 
 /** 시스템 하단바 높이(화면 맨 아래에 붙는 요소가 읽는다) */
