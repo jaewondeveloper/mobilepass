@@ -30,6 +30,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/** 화면 캡처 테스트에서 끝나지 않는 1초 갱신 루프가 idle 판정을 막지 않도록 끌 수 있게 하는 스위치 (실제 앱에서는 항상 true) */
+object IdTabConfig { @JvmField var liveClock: Boolean = true }
+
 @Composable
 fun IdTab(state: AppState, onScan: () -> Unit, onPhoto: () -> Unit) {
     val c = LocalColors.current
@@ -82,7 +85,7 @@ private val Float.fsp0 get() = androidx.compose.ui.unit.TextUnit(this, androidx.
 @Composable
 private fun Clock() {
     var now by remember { mutableStateOf(Date()) }
-    LaunchedEffect(Unit) { while (true) { now = Date(); delay(1000) } }
+    LaunchedEffect(Unit) { if (IdTabConfig.liveClock) while (true) { now = Date(); delay(1000) } }
     val fmt = remember { SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.KOREA) }
     Text(fmt.format(now), color = Color(0x73010102), fontSize = 12.fsp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
 }
