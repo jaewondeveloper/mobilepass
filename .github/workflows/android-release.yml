@@ -1,0 +1,70 @@
+name: Android release (Play Store)
+
+# 수동으로만 실행한다 (Actions 탭 → Android release → Run workflow).
+# 저장소 시크릿 4개(KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD)가 있어야
+# 실제로 서명된(=스토어에 올릴 수 있는) APK/AAB 가 나온다. 없으면 이 워크플로는 바로 실패한다.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: 시크릿 확인
+        run: |
+          missing=0
+          for v in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then echo "::error::저장소 시크릿 $v 가 없어요 (Settings → Secrets and variables → Actions)"; missing=1; fi
+          done
+          exit $missing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: 키스토어 복원 (빌드가 끝나면 지움)
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.jks"
+
+      - name: 서명된 AAB + APK 빌드 (native 버전만 — 스토어에 올리는 버전)
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew --no-daemon bundleNativeRelease assembleNativeRelease
+
+      - name: 키스토어 파일 삭제
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
+
+      - name: 서명 확인 (누구 키로 서명됐는지 로그에 남김)
+        run: |
+          APK=$(find app/build/outputs/apk/native/release -name '*.apk' | head -1)
+          $ANDROID_HOME/build-tools/*/apksigner verify --print-certs "$APK" || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mobilepass-native-release-aab
+          path: app/build/outputs/bundle/nativeRelease/*.aab
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mobilepass-native-release-apk
+          path: app/build/outputs/apk/native/release/*.apk
+
+      - name: 매핑 파일 (크래시 로그 복원용 — Play Console 업로드 시 같이 올리면 좋음)
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobilepass-native-release-mapping
+          path: app/build/outputs/mapping/nativeRelease/mapping.txt
+          if-no-files-found: ignore

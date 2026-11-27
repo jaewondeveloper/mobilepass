@@ -16,15 +16,16 @@ android {
         versionName = "1.0.0"
     }
 
-    // 같은 기능의 두 버전: web = HTML(WebView), native = Jetpack Compose. 서로 다른 앱으로 같이 설치할 수 있다.
+    // 같은 기능의 두 버전: web = HTML(WebView, 비교/개발용), native = Jetpack Compose (실제로 배포하는 버전).
+    // native 는 접미사 없이 기본 applicationId 를 그대로 쓴다 (스토어에 올라가는 진짜 패키지명).
     flavorDimensions += "ui"
     productFlavors {
         create("web") {
             dimension = "ui"
+            applicationIdSuffix = ".web"
         }
         create("native") {
             dimension = "ui"
-            applicationIdSuffix = ".native"
         }
     }
 
@@ -38,9 +39,27 @@ android {
         }
     }
 
+    // 릴리스 서명: CI 가 비밀값(KEYSTORE_*)으로 건네주는 키스토어로 서명한다.
+    // 비밀값이 없는 로컬 빌드(./gradlew assembleRelease)는 디버그 키로 서명해, 스토어용이 아니어도 빌드 자체는 항상 된다.
+    val releaseKeystorePath = System.getenv("KEYSTORE_PATH")
+    val hasReleaseSigning = releaseKeystorePath != null && file(releaseKeystorePath).exists()
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseKeystorePath!!)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true        // R8: 안 쓰는 코드 제거 + 이름 난독화(클래스/메서드/필드)
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = if (hasReleaseSigning) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
         }
     }
 

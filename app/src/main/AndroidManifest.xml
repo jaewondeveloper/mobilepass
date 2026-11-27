@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.CAMERA" />
-    <!-- 급식(나이스)과 시간표(컴시간)를 불러오는 데만 쓴다 -->
+    <!-- 급식·시간표를 나이스에서 불러오는 데만 쓴다 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 
