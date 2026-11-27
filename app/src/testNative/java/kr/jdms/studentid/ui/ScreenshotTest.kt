@@ -2,12 +2,11 @@ package kr.jdms.studentid.ui
 
 import android.app.Application
 import android.graphics.Bitmap
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.captureToImage
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.background
@@ -30,7 +29,7 @@ import java.io.File
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w393dp-h852dp-mdpi")
 class ScreenshotTest {
-    @get:Rule val rule = createComposeRule()
+    @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
 
     @org.junit.Before fun setUp() { IdTabConfig.liveClock = false }
 
@@ -39,6 +38,19 @@ class ScreenshotTest {
         val store = CardStore(app)
         if (registered) store.save("홍길동", "S1234567") else store.clear()
         return AppState(app, store)
+    }
+
+    /** 액티비티의 최상위 View 를 393x852dp 크기로 레이아웃하고 직접 비트맵에 그린다 */
+    private fun drawActivityToBitmap(): Bitmap {
+        val decor = rule.activity.window.decorView
+        val dm = rule.activity.resources.displayMetrics
+        val w = dm.widthPixels
+        val h = dm.heightPixels
+        decor.measure(android.view.View.MeasureSpec.makeMeasureSpec(w, android.view.View.MeasureSpec.EXACTLY), android.view.View.MeasureSpec.makeMeasureSpec(h, android.view.View.MeasureSpec.EXACTLY))
+        decor.layout(0, 0, w, h)
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        decor.draw(android.graphics.Canvas(bmp))
+        return bmp
     }
 
     private fun shot(name: String, dark: Boolean, registered: Boolean = true, setup: (AppState) -> Unit = {}) {
@@ -50,7 +62,8 @@ class ScreenshotTest {
             }
         }
         rule.waitForIdle()                          // 시계 갱신 루프는 IdTabConfig.liveClock=false 로 꺼 두었으므로 idle 이 된다
-        val bmp = rule.onRoot().captureToImage().asAndroidBitmap()
+        // captureToImage() 는 Robolectric 에서 PixelCopy 를 기다리다 시간 초과가 나므로, 화면(View)을 비트맵 캔버스에 직접 그린다
+        val bmp = drawActivityToBitmap()
         val dir = File("build/screenshots").apply { mkdirs() }
         File(dir, "$name.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
 
