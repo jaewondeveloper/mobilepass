@@ -70,6 +70,6 @@ class ScreenshotTest {
     @Test fun card_dark() = shot("devices-dark", true) { it.tab = Tab.CARD }
     @Test fun menu_light() = shot("menu-light", false) { it.tab = Tab.MENU }
     @Test fun menu_dark() = shot("menu-dark", true) { it.tab = Tab.MENU }
-    @Test fun settings_light() = shot("settings-light", false) { it.page = Page.SETTINGS }
-    @Test fun settings_dark() = shot("settings-dark", true) { it.page = Page.SETTINGS }
+    @Test fun settings_light() = shot("settings-light", false) { it.open(Page.SETTINGS) }
+    @Test fun settings_dark() = shot("settings-dark", true) { it.open(Page.SETTINGS) }
 }

@@ -1,5 +1,7 @@
 package kr.jdms.studentid.ui
 
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -61,9 +63,11 @@ val LocalColors = staticCompositionLocalOf { LightColors }
 @Composable
 fun AppTheme(dark: Boolean, content: @Composable () -> Unit) {
     val d = LocalDensity.current
+    val colors = if (dark) DarkColors else LightColors
     CompositionLocalProvider(
-        LocalColors provides (if (dark) DarkColors else LightColors),
+        LocalColors provides colors,
         LocalDensity provides Density(d.density, fontScale = 1f),
+        LocalIndication provides ripple(color = colors.text),      // 카드/타일을 누를 때의 물결 (wx-ripple)
         content = content,
     )
 }

@@ -3,6 +3,7 @@ package kr.jdms.studentid.ui
 import android.content.Context
 import android.graphics.BitmapFactory
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
@@ -18,7 +19,12 @@ class AppState(context: Context, private val store: CardStore) {
     private val prefs = context.applicationContext.getSharedPreferences("sid_prefs", Context.MODE_PRIVATE)
 
     var tab by mutableStateOf(Tab.HOME)
-    var page by mutableStateOf(Page.NONE)
+    /** 열린 페이지 스택 (아래→위). 비어 있으면 탭 화면 */
+    val stack = mutableStateListOf<Page>()
+    val page: Page get() = stack.lastOrNull() ?: Page.NONE
+    fun open(p: Page) { if (page != p) stack.add(p) }
+    fun back() { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex) }
+    fun closeAll() { stack.clear() }
     var name by mutableStateOf<String?>(null)
     var code by mutableStateOf<String?>(null)
     var photo by mutableStateOf<ImageBitmap?>(null)

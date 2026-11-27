@@ -8,7 +8,15 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -82,7 +90,7 @@ fun PillButton(
     icon: Int? = null,
 ) {
     Row(
-        modifier.height(height).clip(RoundedCornerShape(height / 2)).background(bg).clickable(onClick = onClick).padding(horizontal = 22.dp),
+        modifier.recoilClickable(scale = 0.95f, onClick = onClick).height(height).clip(RoundedCornerShape(height / 2)).background(bg).padding(horizontal = 22.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
@@ -103,14 +111,15 @@ fun TabBar(selected: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modifier
     ) {
         items.forEach { (tab, icon, label) ->
             val on = tab == selected
+            val tint by animateColorAsState(if (on) c.text else c.tabIdle, tween(100, easing = LinearEasing), label = "tabTint")
             Column(
-                Modifier.width(80.dp).height(48.dp).clip(RoundedCornerShape(24.dp))
-                    .background(if (on) c.tabSelected else Color.Transparent)
-                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onSelect(tab) },
+                Modifier.recoilClickable(scale = 0.965f) { onSelect(tab) }
+                    .width(80.dp).height(48.dp).clip(RoundedCornerShape(24.dp))
+                    .background(if (on) c.tabSelected else Color.Transparent),
                 horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
             ) {
-                Ico(icon, 22.dp, tint = if (on) c.text else c.tabIdle)
-                Text(label, color = if (on) c.text else c.tabIdle, fontSize = 10.fsp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal)
+                Ico(icon, 22.dp, tint = tint)
+                Text(label, color = tint, fontSize = 10.fsp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal)
             }
         }
     }
@@ -174,7 +183,7 @@ fun AppSwitch(checked: Boolean, onChange: (Boolean) -> Unit) {
     }
 }
 
-// ───────────────────────── 템플릿 Dialog 모양 (하단 시트) ─────────────────────────
+// ───────────────────────── 템플릿 Dialog (측정값: 반지름 26, 안쪽 여백 24, 제목 17sp, 버튼 18sp) ─────────────────────────
 
 class DialogAction(val label: String, val onClick: () -> Unit)
 
@@ -193,35 +202,45 @@ fun DialogOverlay(spec: DialogSpec?, bottomInset: Dp) {
     var last by remember { mutableStateOf<DialogSpec?>(null) }
     if (spec != null) last = spec
     BackHandler(enabled = spec != null) { if (spec != null && spec.cancelable) spec.onCancel() }
+    val slide = with(androidx.compose.ui.platform.LocalDensity.current) { 100.dp.roundToPx() }
     Box(Modifier.fillMaxSize()) {
-        AnimatedVisibility(visible = spec != null, enter = fadeIn(tween(250)), exit = fadeOut(tween(200))) {
+        // 배경 어둡게: 열 때 150ms linear, 닫을 때 250ms(67ms 지연) linear
+        AnimatedVisibility(
+            visible = spec != null,
+            enter = fadeIn(tween(150, easing = LinearEasing)),
+            exit = fadeOut(tween(250, delayMillis = 67, easing = LinearEasing)),
+        ) {
             Box(
                 Modifier.fillMaxSize().background(c.scrim)
                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { spec?.let { if (it.cancelable) it.onCancel() } },
             )
         }
+        // 시트: 아래 100px 에서 300ms cubic-bezier(.17,.17,.2,1) (열 때 100ms 지연), 페이드 150ms(열기) / 100ms(닫기)
         AnimatedVisibility(
             visible = spec != null,
             modifier = Modifier.align(Alignment.BottomCenter),
-            enter = slideInVertically(tween(350)) { it } + fadeIn(tween(200)),
-            exit = slideOutVertically(tween(250)) { it } + fadeOut(tween(200)),
+            enter = slideInVertically(tween(300, delayMillis = 100, easing = Motion.Dialog)) { slide } + fadeIn(tween(150, delayMillis = 100, easing = Motion.Ease)),
+            exit = slideOutVertically(tween(300, easing = Motion.Dialog)) { slide } + fadeOut(tween(100, easing = LinearEasing)),
         ) {
             val s = last
             if (s != null) {
+                val shape = RoundedCornerShape(26.dp)
                 Column(
                     Modifier.padding(start = 10.dp, end = 10.dp, bottom = 8.dp + bottomInset).fillMaxWidth()
-                        .clip(RoundedCornerShape(32.dp)).background(c.dialog)
-                        .pointerInput(Unit) { detectTapGestures { } },
+                        .shadow(4.dp, shape, ambientColor = Color(0x26000000), spotColor = Color(0x26000000))
+                        .clip(shape).background(c.dialog)
+                        .pointerInput(Unit) { detectTapGestures { } }
+                        .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 20.dp),
                 ) {
-                    Text(s.title, color = c.text, fontSize = 20.fsp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp))
-                    if (s.message != null) Text(s.message, color = c.textSub, fontSize = 15.fsp, modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 10.dp))
-                    if (s.content != null) Box(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(top = 14.dp)) { s.content.invoke() }
-                    Spacer(Modifier.height(8.dp))
-                    Row(Modifier.fillMaxWidth().height(60.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(s.title, color = c.text, fontSize = 17.fsp, lineHeight = 23.fsp, fontWeight = FontWeight.SemiBold)
+                    if (s.message != null) Text(s.message, color = c.textSub, fontSize = 15.fsp, modifier = Modifier.padding(top = 12.dp))
+                    if (s.content != null) Box(Modifier.fillMaxWidth().padding(top = 12.dp)) { s.content.invoke() }
+                    Spacer(Modifier.height(16.dp))
+                    Row(Modifier.fillMaxWidth().height(36.dp), verticalAlignment = Alignment.CenterVertically) {
                         s.actions.forEachIndexed { i, a ->
-                            if (i > 0) Box(Modifier.width(1.dp).height(24.dp).background(c.divider))
-                            Box(Modifier.weight(1f).fillMaxSize().clickable(onClick = a.onClick), contentAlignment = Alignment.Center) {
-                                Text(a.label, color = c.text, fontSize = 17.fsp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+                            if (i > 0) Box(Modifier.width(1.dp).height(16.dp).background(Color(0x4D808080)))
+                            Box(Modifier.weight(1f).fillMaxSize().recoilClickable(scale = 0.96f, onClick = a.onClick), contentAlignment = Alignment.Center) {
+                                Text(a.label, color = c.text, fontSize = 18.fsp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
                             }
                         }
                     }
@@ -238,16 +257,59 @@ class ToastState {
     fun show(msg: String) { message = msg }
 }
 
+/**
+ * 원 모양으로 올라오며 커지다가 좌우로 늘어나며 글자가 나타나는 토스트 (원본 CSS 와 같은 620ms 키프레임).
+ * 2.4초 뒤 250ms 동안 사라진다. 위치: 아래에서 120px + 시스템 바.
+ */
 @Composable
 fun ToastHost(state: ToastState, bottomInset: Dp) {
     val msg = state.message
-    LaunchedEffect(msg) { if (msg != null) { delay(2400); if (state.message == msg) state.message = null } }
+    val shown = remember { mutableStateOf<String?>(null) }
+    val progress = remember { Animatable(0f) }
+    val alpha = remember { Animatable(0f) }
+    LaunchedEffect(msg) {
+        if (msg == null) return@LaunchedEffect
+        shown.value = msg
+        alpha.snapTo(1f)
+        progress.snapTo(0f)
+        progress.animateTo(1f, tween(620, easing = LinearEasing))
+        delay(2400 - 620L)
+        if (state.message == msg) {
+            alpha.animateTo(0f, tween(250, easing = Motion.Ease))
+            if (state.message == msg) state.message = null
+        }
+    }
+    val text = shown.value ?: return
+    if (alpha.value <= 0f && state.message == null) return
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-        AnimatedVisibility(visible = msg != null, enter = fadeIn(tween(200)) + slideInVertically(tween(300)) { it / 2 }, exit = fadeOut(tween(250))) {
-            Box(
-                Modifier.padding(bottom = 120.dp + bottomInset).height(44.dp).clip(RoundedCornerShape(22.dp)).background(Color(0xB81E2026)).padding(horizontal = 20.dp),
-                contentAlignment = Alignment.Center,
-            ) { Text(msg ?: "", color = Color.White, fontSize = 14.fsp, fontWeight = FontWeight.Medium) }
+        val t = progress.value
+        val e1 = CubicBezierEasing(0.2f, 0.8f, 0.3f, 1f)
+        val e2 = CubicBezierEasing(0.3f, 0.7f, 0.3f, 1f)
+        val rise = if (t < 0.38f) e1.transform(t / 0.38f) else 1f
+        val grow = if (t < 0.38f) 0f else e2.transform((t - 0.38f) / 0.62f)
+        val textAlpha = if (t < 0.55f) 0f else ((t - 0.55f) / 0.45f).coerceIn(0f, 1f)
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        Box(
+            Modifier.padding(bottom = 120.dp + bottomInset)
+                .graphicsLayer {
+                    this.alpha = alpha.value
+                    val sc = 0.15f + 0.85f * rise
+                    scaleX = sc; scaleY = sc
+                    translationY = with(density) { (80.dp * (1f - rise)).toPx() }
+                }
+                .layout { m, c ->
+                    val p = m.measure(c.copy(minWidth = 0))
+                    val d = 44.dp.roundToPx()
+                    val w = (d + (p.width - d) * grow).toInt().coerceAtLeast(d)
+                    layout(w, p.height) { p.placeRelative((w - p.width) / 2, 0) }
+                }
+                .clip(RoundedCornerShape(22.dp)).background(Color(0xB81E2026)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text, color = Color.White.copy(alpha = textAlpha), fontSize = 14.fsp, fontWeight = FontWeight.Medium, maxLines = 1,
+                modifier = Modifier.height(44.dp).padding(horizontal = 20.dp).wrapContentHeight(Alignment.CenterVertically),
+            )
         }
     }
 }
