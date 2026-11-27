@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import kr.jdms.studentid.CardStore
 
 enum class Tab { HOME, CARD, MENU }
-enum class Page { NONE, SETTINGS, TIPS, INFO, LICENSES, PRIVACY, SCAN }
+enum class Page { NONE, SETTINGS, TIPS, INFO, LICENSES, PRIVACY, TIMETABLE, MEAL, SCAN }
 enum class Step { ID, CARD_FACE, SELFIE }
 
 /** 화면이 읽는 앱 상태. 학생증/프로필 사진은 CardStore(기기 내부 저장소)가 원본이다. */
@@ -25,6 +25,10 @@ class AppState(context: Context, private val store: CardStore) {
     fun open(p: Page) { if (page != p) stack.add(p) }
     fun back() { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex) }
     fun closeAll() { stack.clear() }
+    /** 급식/시간표 (학년·반 설정, 나이스·컴시간 불러오기) */
+    val school = kr.jdms.studentid.school.SchoolRepository(context)
+    /** 학년/반이 바뀔 때마다 올라가서, 열려 있는 시간표가 다시 불러오게 한다 */
+    var classTick by mutableStateOf(0)
     var name by mutableStateOf<String?>(null)
     var code by mutableStateOf<String?>(null)
     var photo by mutableStateOf<ImageBitmap?>(null)

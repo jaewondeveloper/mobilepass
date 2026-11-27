@@ -111,7 +111,7 @@ fun SchoolMenu(open: Boolean, top: androidx.compose.ui.unit.Dp, onDismiss: () ->
 }
 
 @Composable
-fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon: () -> Unit, sc: androidx.compose.foundation.ScrollState = rememberScrollState()) {
+fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon: () -> Unit, onMeal: () -> Unit = onSoon, onTimetable: () -> Unit = onSoon, sc: androidx.compose.foundation.ScrollState = rememberScrollState()) {
     val c = LocalColors.current
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().scrollEdgeFade(sc).verticalScroll(sc)) {
@@ -142,8 +142,8 @@ fun HomeTab(state: AppState, onScan: () -> Unit, onOpenCard: () -> Unit, onSoon:
                     ) {
                         val tiles = listOf(
                             Triple(R.drawable.ic_attend, "출결", onSoon),
-                            Triple(R.drawable.ic_meal, "급식", onSoon),
-                            Triple(R.drawable.ic_timetable, "시간표", onSoon),
+                            Triple(R.drawable.ic_meal, "급식", onMeal),
+                            Triple(R.drawable.ic_timetable, "시간표", onTimetable),
                             Triple(R.drawable.ic_notice, "공지", onSoon),
                             Triple(R.drawable.ic_profile, if (state.registered) "학생증 등록" else "학생증 없음", onOpenCard),
                             Triple(R.drawable.ic_scan, "스캔", onScan),

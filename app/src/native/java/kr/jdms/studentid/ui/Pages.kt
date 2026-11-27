@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 
 /** 뒤로가기 머리글(높이 68) 아래에 내용이 이어지는 페이지 틀 */
 @Composable
-private fun PageFrame(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
+internal fun PageFrame(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
     // 머리글은 스크롤 위에 떠 있고(내용이 그 뒤로 지나감), 스크롤되면 뒤로가기 버튼 뒤에 흐린 유리 배경이 생긴다
     val c = LocalColors.current
     val sc = rememberScrollState()
@@ -159,7 +159,7 @@ private fun DocRow(title: String, lines: List<String>, accentFirst: Boolean = fa
 
 /** 구역 제목: 13/600, x=28, 카드는 그 아래 25.5 에서 시작 (원본 y=68 → 93.5) */
 @Composable
-private fun SectionLabel(text: String) {
+fun SectionLabel(text: String) {
     val c = LocalColors.current
     Box(Modifier.fillMaxWidth().height(25.5.dp)) {
         PT(text, 28f, 0f, 13, if (c.dark) c.textSub else Color(0xFF848487), 600)

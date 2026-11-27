@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -139,6 +140,17 @@ fun AppSurface(
     val c = LocalColors.current
     var showPhoto by remember { mutableStateOf(false) }
     var schoolMenu by remember { mutableStateOf(false) }
+    // 시간표/급식: 처음이면 학년·반을 먼저 묻는다 (템플릿 대화상자)
+    var setupOpen by remember { mutableStateOf(false) }
+    var setupThen by remember { mutableStateOf<Page?>(null) }
+    var pickG by remember { mutableIntStateOf(1) }
+    var pickK by remember { mutableIntStateOf(1) }
+    fun askClass(then: Page?) {
+        pickG = state.school.config.grade.takeIf { it in 1..3 } ?: 1
+        pickK = state.school.config.cls.takeIf { it in 1..20 } ?: 1
+        setupThen = then; setupOpen = true
+    }
+    fun openSchool(p: Page) { if (state.school.config.isSet) state.open(p) else askClass(p) }
     // 뒤 화면을 기록해 두는 레이어: 학교 선택 메뉴/토스트의 배경 흐림(backdrop blur)에 쓴다
     val backdropLayer = androidx.compose.ui.graphics.rememberGraphicsLayer()
     val backdrop = remember(backdropLayer) { Backdrop(backdropLayer) }
@@ -167,7 +179,7 @@ fun AppSurface(
                         }
                         Box(Modifier.fillMaxSize().padding(top = top)) {
                             when (state.tab) {
-                                Tab.HOME -> HomeTab(state, onScan = openScan, onOpenCard = { state.tab = Tab.CARD }, onSoon = { toast.show("데모에서는 준비 중이에요") }, sc = homeSc)
+                                Tab.HOME -> HomeTab(state, onScan = openScan, onOpenCard = { state.tab = Tab.CARD }, onSoon = { toast.show("데모에서는 준비 중이에요") }, onMeal = { openSchool(Page.MEAL) }, onTimetable = { openSchool(Page.TIMETABLE) }, sc = homeSc)
                                 Tab.CARD -> IdTab(state, onScan = openScan, onPhoto = { showPhoto = true }, sc = cardSc)
                                 Tab.MENU -> MenuTab(onReRegister = openScan, onTips = { state.open(Page.TIPS) }, onInfo = { state.open(Page.INFO) }, sc = menuSc)
                             }
@@ -193,6 +205,8 @@ fun AppSurface(
                         Page.TIPS -> TipsPage { state.back() }
                         Page.INFO -> InfoPage({ state.back() }, { state.open(Page.LICENSES) }, { state.open(Page.PRIVACY) })
                         Page.PRIVACY -> PrivacyPage { state.back() }
+                        Page.TIMETABLE -> TimetablePage(state, { state.back() }, { askClass(null) })
+                        Page.MEAL -> MealPage(state) { state.back() }
                         Page.LICENSES -> LicensesPage { state.back() }
                         Page.SCAN -> scanScreen()
                         Page.NONE -> {}
@@ -214,7 +228,23 @@ fun AppSurface(
             )
         } else null
         SchoolMenu(schoolMenu && state.page == Page.NONE && state.tab != Tab.MENU, top) { schoolMenu = false }
-        DialogOverlay(scanDialog ?: zoom, bottom)
+        val setupDialog = if (setupOpen) DialogSpec(
+            title = "학년과 반을 알려주세요",
+            message = "시간표를 불러올 때만 사용해요.",
+            content = { ClassPicker(pickG, pickK, { pickG = it }, { pickK = it }) },
+            actions = listOf(
+                DialogAction("취소") { setupOpen = false },
+                DialogAction("확인") {
+                    state.school.config.grade = pickG
+                    state.school.config.cls = pickK
+                    state.classTick++
+                    setupOpen = false
+                    setupThen?.let { state.open(it) }
+                },
+            ),
+            onCancel = { setupOpen = false },
+        ) else null
+        DialogOverlay(scanDialog ?: setupDialog ?: zoom, bottom)
         ToastHost(toast, bottom)
     }
     }
