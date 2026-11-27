@@ -14,6 +14,8 @@
   4. 웹용 인식 엔진(Tesseract/ZXing) CDN 로딩 생략, 바코드 표시용 JsBarcode만 로컬 로딩
   5. 안전 영역은 템플릿이 vhome.getSystemBarInsets() 로 직접 계산하므로 건드리지 않고,
      WebView 의 env(safe-area-inset-*) 가 겹쳐 더해지지 않도록 0 으로 고정
+  5-1. 색 모드 고정: 앱이 알려준 값으로 matchMedia 를 대체 → 복귀 시 라이트/다크 깜빡임 방지, 스플래시 배경도 다크 대응
+  5-2. 성능: 숨은 lottie 정지, 스캔 중 패치 중단, 프레임 폴링 제거
   6. 다크모드: 탭마다 인라인으로 박힌 라이트용 배경 이미지/무드 색을 다크에서는 템플릿 기본 다크색(#010102)으로 통일
 """
 import re
@@ -67,6 +69,10 @@ sub("        SidTipsPage: make('유용한 정보', function (b) {",
 # ── 4) 라이브러리: 네이티브에선 JsBarcode(바코드 그리기)만 로컬에서 ──
 sub("    libsStarted = true;\n    Promise.all([",
     "    libsStarted = true;\n    if (window.SidNative) { loadScript('jsbarcode.min.js').then(function () { S.rev++; }); return; }\n    Promise.all([")
+
+# 성능: 스캔 페이지가 열려 있는 동안엔 홈/탭 패치가 필요 없다 (카메라 + 변하는 안내 문구가 DOM 변경을 계속 일으켜 매번 훑게 됨)
+sub("  function patchAll() {\n    if (document.hidden) return;\n    if (scanOpen()) return;",
+    "  function patchAll() {\n    if (document.hidden) return;\n    if (scanOpen()) return;\n    if (window.SidNative && SCAN.frame) return;")
 
 # 오픈소스 라이선스 목록을 이 앱이 실제로 쓰는 것으로
 sub_re = re.compile(r"var web = \[.*?\];\n")
@@ -146,13 +152,13 @@ SCAN_JS = r"""
   }
   // 페이지 전환 애니메이션이 끝나 자리가 안정되면 카메라를 켜고, 이후 위치가 바뀌면 따라간다. 페이지가 닫히면 끈다.
   function trackScanFrame() {
-    cancelAnimationFrame(SCAN.raf);
+    clearTimeout(SCAN.raf);
     (function tick() {
       var f = SCAN.frame;
       // 페이지 본문은 만들어진 직후 잠깐 DOM 에 붙기 전일 수 있다 → 한 번 붙은 뒤에 떨어지면(페이지 닫힘) 종료
       if (f && f.isConnected) SCAN.seen = true;
       if (!f || (!f.isConnected && (SCAN.seen || performance.now() - SCAN.born > 3000))) { endScanSession(); return; }
-      if (!f.isConnected) { SCAN.raf = requestAnimationFrame(tick); return; }
+      if (!f.isConnected) { SCAN.raf = setTimeout(tick, 100); return; }
       var r = frameRect(), key = [r.x, r.y, r.w, r.h].map(Math.round).join(',');
       if (r.w > 50 && r.h > 50) {
         if (key !== SCAN.key) {
@@ -163,11 +169,11 @@ SCAN_JS = r"""
           nat('cameraStart', STEP[SCAN.step].mode, r.x, r.y, r.w, r.h, SCAN.step === 'selfie' ? -1 : 19);   // 타원은 -1, 카드는 모서리 22 - 테두리 3
         }
       }
-      SCAN.raf = requestAnimationFrame(tick);
+      SCAN.raf = setTimeout(tick, 100);
     })();
   }
   function endScanSession() {
-    cancelAnimationFrame(SCAN.raf);
+    clearTimeout(SCAN.raf);
     if (SCAN.started || SCAN.frame) nat('cameraStop');
     nat('discardFace');                                         // 임시로 들고 있던 증명사진 특징값/프로필 후보는 지운다
     SCAN.frame = null; SCAN.hint = null; SCAN.started = false; SCAN.key = ''; SCAN.seen = false;
@@ -311,6 +317,21 @@ SCAN_JS = r"""
     }).show();
   }
 
+  /* ───── 성능: 화면에 안 보이는 lottie 애니메이션은 멈춘다 (숨은 대시보드 아이콘 등 26개가 계속 돌며 CPU 를 씀. 래퍼(vx-lottie-player)가 아니라 내부 lottie-player 를 멈춰야 효과가 있음) ───── */
+  var lottiePaused = new WeakSet();
+  function tuneLottie() {
+    if (document.hidden) return;
+    deepAll('lottie-player').forEach(function (e) {
+      try {
+        var r = e.getBoundingClientRect(), hidden = r.width === 0 || r.height === 0;
+        // 숨은 것은 매번 pause (아직 로드 전이라 무시되었거나, 다시 렌더되며 재생이 시작된 경우를 잡기 위해). 다시 보이면 이어서 재생.
+        if (hidden) { e.pause(); lottiePaused.add(e); }
+        else if (lottiePaused.has(e)) { e.play(); lottiePaused.delete(e); }
+      } catch (x) {}
+    });
+  }
+  if (window.SidNative) setInterval(tuneLottie, 2000);
+
   scanCss();
   window.__sidRegister = register;
   window.__sidToast = toast;
@@ -323,9 +344,20 @@ sub("@@ANCHOR@@", SCAN_JS.lstrip("\n"))
 HEAD_PATCH = (
     "<script>try{if(window.vhome&&window.SidNative){var s=document.documentElement.style;"
     "['top','right','bottom','left'].forEach(function(k){s.setProperty('--c-ess-safe-area-inset-'+k,'0px');});}}catch(e){}</script>\n"
+    # 색 모드: 앱(네이티브)이 알려준 값을 기준으로 고정한다. 페이지는 matchMedia('(prefers-color-scheme: dark)') 로 모드를 읽고
+    # 그 값을 속성에 되비추는데, WebView 가 앱 복귀 순간에 값을 잠깐 다르게 보고하면 라이트/다크가 한 번 깜빡인다.
+    "<script>try{var N=window.SidNative;if(N&&N.isDark){var dark=!!N.isDark(),ls=[],R=document.documentElement,real=window.matchMedia.bind(window);"
+    "R.setAttribute('data-sid-dark',dark?'1':'0');R.setAttribute('data-stplugin-dark-mode',dark?'true':'false');"
+    "var mql=function(q){return{media:q,onchange:null,get matches(){return dark},"
+    "addEventListener:function(t,f){if(t==='change')ls.push(f)},removeEventListener:function(t,f){ls=ls.filter(function(x){return x!==f})},"
+    "addListener:function(f){ls.push(f)},removeListener:function(f){ls=ls.filter(function(x){return x!==f})},dispatchEvent:function(){return true}}};"
+    "window.matchMedia=function(q){return /prefers-color-scheme\\s*:\\s*dark/.test(q)?mql(q):real(q)};"
+    "window.__sidSetDark=function(d){d=!!d;if(d===dark)return;dark=d;R.setAttribute('data-sid-dark',d?'1':'0');"
+    "ls.slice().forEach(function(f){try{f({matches:d,media:'(prefers-color-scheme: dark)'})}catch(e){}})};}}catch(e){}</script>\n"
     "<style id=\"sid-dark\">html[data-color-scheme=\"dark\"] px-window-glass.gradient-bg{background-image:none!important;background-color:#010102!important}</style>\n"
 )
 sub('<style id="sid-early">', HEAD_PATCH + '<style id="sid-early">')
+sub('html:not(.sid-go){background:#f1f1f3!important}', 'html:not(.sid-go){background:#f1f1f3!important}html[data-sid-dark="1"]:not(.sid-go){background:#010102!important}')
 
 dst.parent.mkdir(parents=True, exist_ok=True)
 dst.write_text(html, encoding="utf-8")

@@ -6,6 +6,7 @@ import android.app.ActivityManager
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.Outline
 import android.os.Build
 import android.os.Bundle
@@ -131,6 +132,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ───────────────────────── WebView ─────────────────────────
+
+    private fun isDark() =
+        (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+
+    /**
+     * 테마(라이트/다크) 전환으로 액티비티가 다시 만들어지면 페이지가 통째로 다시 로드되며 깜빡인다.
+     * 매니페스트에서 uiMode 변경을 직접 처리하도록 해서(재생성 없음) 페이지에 값만 바로 알려준다.
+     */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        val bg = ContextCompat.getColor(this, R.color.app_bg)
+        root.setBackgroundColor(bg)
+        if (::webView.isInitialized) webView.setBackgroundColor(bg)
+        js("window.__sidSetDark && window.__sidSetDark(${isDark()})")
+    }
 
     @SuppressLint("SetJavaScriptEnabled", "AddJavascriptInterface")
     private fun createWebView() {
@@ -405,6 +421,10 @@ class MainActivity : AppCompatActivity() {
 
     /** 학생증 전용: 등록 정보 저장/복원, 스캔 카메라 제어 */
     inner class Bridge {
+        /** 현재 앱의 다크모드 여부. 페이지의 색 모드를 이 값으로 고정한다. */
+        @JavascriptInterface
+        fun isDark(): Boolean = isDark()
+
         @JavascriptInterface
         fun getRegistration(): String? = store.toJson()
 
