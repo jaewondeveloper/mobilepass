@@ -71,7 +71,7 @@ class ScanController(
         pending = null; fails = 0; startTick++
     }
 
-    private fun setStep(s: Step) {
+    private fun goToStep(s: Step) {
         step = s
         hint = when (s) { Step.ID -> HINT_ID; Step.CARD_FACE -> HINT_CARD_FACE; Step.SELFIE -> HINT_SELFIE }
         detected = false
@@ -146,7 +146,7 @@ class ScanController(
                         dialog = null
                         pending = name to code
                         fails = 0
-                        setStep(if (embedder.value.available) Step.CARD_FACE else Step.SELFIE)     // 본인 확인 전에는 등록하지 않는다
+                        goToStep(if (embedder.value.available) Step.CARD_FACE else Step.SELFIE)     // 본인 확인 전에는 등록하지 않는다
                     },
                 ),
                 onCancel = { retryId() },
@@ -167,7 +167,7 @@ class ScanController(
     private val faceListener = object : FaceScanner.Listener {
         override fun onState(hint: String, detected: Boolean) { this@ScanController.hint = hint; this@ScanController.detected = detected }
 
-        override fun onCardFace() { faceScanner?.stop(); previewVisible = false; setStep(Step.SELFIE) }
+        override fun onCardFace() { faceScanner?.stop(); previewVisible = false; goToStep(Step.SELFIE) }
 
         override fun onSelfie(result: FaceScanner.SelfieResult) {
             faceScanner?.stop()
@@ -192,8 +192,8 @@ class ScanController(
             cancelable = false,
             actions = if (last) listOf(DialogAction("닫기") { dialog = null; FaceSession.clear(); close() })
             else listOf(
-                DialogAction("앞면 다시 찍기") { dialog = null; setStep(Step.CARD_FACE) },
-                DialogAction("다시 시도") { dialog = null; setStep(Step.SELFIE) },
+                DialogAction("앞면 다시 찍기") { dialog = null; goToStep(Step.CARD_FACE) },
+                DialogAction("다시 시도") { dialog = null; goToStep(Step.SELFIE) },
             ),
         )
     }
@@ -214,7 +214,7 @@ class ScanController(
                 }
             },
             actions = listOf(
-                DialogAction("재촬영") { dialog = null; setStep(Step.SELFIE) },
+                DialogAction("재촬영") { dialog = null; goToStep(Step.SELFIE) },
                 DialogAction("확인") {
                     val p = pending
                     dialog = null
@@ -227,7 +227,7 @@ class ScanController(
                     close()
                 },
             ),
-            onCancel = { dialog = null; setStep(Step.SELFIE) },
+            onCancel = { dialog = null; goToStep(Step.SELFIE) },
         )
     }
 

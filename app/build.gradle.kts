@@ -72,8 +72,12 @@ dependencies {
 
     implementation("com.google.android.gms:play-services-tasks:18.2.0")
 
-    // native 버전 전용 (Jetpack Compose)
+    // Compose 컴파일러 플러그인은 모든 flavor 에 적용되므로 런타임(작음)은 공통으로 둔다. 나머지 UI 라이브러리는 native 전용.
     val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
+    implementation(composeBom)
+    implementation("androidx.compose.runtime:runtime")
+
+    // native 버전 전용 (Jetpack Compose UI)
     "nativeImplementation"(composeBom)
     "nativeImplementation"("androidx.compose.ui:ui")
     "nativeImplementation"("androidx.compose.foundation:foundation")
