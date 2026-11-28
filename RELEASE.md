@@ -68,7 +68,7 @@ web(WebView) 버전은 비교·개발용이고, 템플릿 HTML/JS를 그대로 �
 
 ## 5. 체크리스트 (이미 충족된 것)
 
-- [x] `targetSdk`/`compileSdk` 35 (최신 정책 기준 충족)
+- [x] `targetSdk`/`compileSdk` 36 (최신 정책 기준 충족)
 - [x] 64비트 네이티브 라이브러리 포함 (ONNX Runtime AAR가 arm64-v8a 포함, 별도 설정 불필요 — `.aab`로 올리면
       기기별로 필요한 ABI만 받습니다)
 - [x] 권한은 카메라·인터넷뿐, 둘 다 핵심 기능에 실제로 씀
