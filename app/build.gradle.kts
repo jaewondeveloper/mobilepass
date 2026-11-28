@@ -12,8 +12,8 @@ android {
         applicationId = "com.corerepublix.jdms.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
     }
 
     // 같은 기능의 두 버전: web = HTML(WebView, 비교/개발용), native = Jetpack Compose (실제로 배포하는 버전).
